@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  TECHNICIAN
+  VIEWER
+}
+
+enum StockMovementType {
+  DELIVERY
+  USAGE
+  ADJUSTMENT
+}
+
+model User {
+  id            String           @id @default(uuid())
+  email         String           @unique
+  passwordHash  String
+  role          UserRole         @default(VIEWER)
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  movements     StockMovement[]
+  auditLogs     AuditLog[]
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  parts       Part[]
+}
+
+model Part {
+  id               String            @id @default(uuid())
+  catalogNumber    String            @unique
+  name             String
+  description      String?
+  manufacturer     String?
+  categoryId       String?
+  category         Category?         @relation(fields: [categoryId], references: [id])
+  unit             String?           @default("szt")
+  minimumQuantity  Decimal?
+  currentQuantity  Decimal           @default(0)
+  storageLocation  String?
+  barcode          String?           @unique
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  movements        StockMovement[]
+  stockLevels      StockLevel[]
+
+  @@index([name])
+  @@index([categoryId])
+}
+
+model StockLevel {
+  id            String   @id @default(uuid())
+  partId        String
+  part          Part     @relation(fields: [partId], references: [id])
+  quantity      Decimal  @default(0)
+  batchNumber   String?
+  receivedDate  DateTime?
+  expiresAt     DateTime?
+  location      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([partId])
+  @@index([batchNumber])
+}
+
+model StockMovement {
+  id             String             @id @default(uuid())
+  partId         String
+  part           Part               @relation(fields: [partId], references: [id])
+  movementType   StockMovementType
+  quantity       Decimal
+  movementDate   DateTime           @default(now())
+  deliveryDate   DateTime?
+  usageDate      DateTime?
+  referenceCode  String?
+  notes          String?
+  performedById  String?
+  performedBy    User?              @relation(fields: [performedById], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([partId])
+  @@index([movementDate])
+  @@index([performedById])
+}
+
+model AuditLog {
+  id         String    @id @default(uuid())
+  entity     String
+  entityId   String
+  action     String
+  payload    Json?
+  createdAt  DateTime  @default(now())
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+
+  @@index([entity])
+  @@index([createdAt])
+}

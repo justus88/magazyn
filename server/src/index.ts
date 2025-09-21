@@ -1,7 +1,9 @@
+import './config/load-env';
 import http from 'http';
+import { env } from './config/env';
 import createApp from './server';
 
-const port = Number(process.env.PORT || 4000);
+const port = Number(env.PORT);
 const app = createApp();
 
 const server = http.createServer(app);

@@ -1,14 +1,17 @@
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import { env } from './config/env';
 import { registerRoutes } from './routes';
-
-dotenv.config();
 
 export default function createApp() {
   const app = express();
 
-  app.use(cors({ origin: process.env.CORS_ORIGIN || '*' }));
+  const allowedOrigins = env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()).filter(Boolean);
+  app.use(
+    cors({
+      origin: allowedOrigins && allowedOrigins.length > 0 ? allowedOrigins : '*',
+    }),
+  );
   app.use(express.json());
 
   app.get('/health', (_req: Request, res: Response) => {
