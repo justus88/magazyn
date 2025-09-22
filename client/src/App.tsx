@@ -5,6 +5,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
+import { CategoriesPage } from './pages/CategoriesPage';
 import './App.css';
 
 function AuthenticatedHeader() {
@@ -23,6 +24,11 @@ function AuthenticatedHeader() {
         <Link to="/" className="top-nav__link">
           Stany magazynu
         </Link>
+        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+          <Link to="/categories" className="top-nav__link">
+            Kategorie
+          </Link>
+        )}
         {user.role === 'ADMIN' ? (
           <Link to="/admin/users" className="top-nav__link">
             Panel administratora
@@ -55,6 +61,10 @@ export default function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<InventoryPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
+            <Route path="/categories" element={<CategoriesPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

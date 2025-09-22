@@ -62,6 +62,7 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   - Pełny flow logowania i rejestracji (formularze + walidacja) z zapisem tokenu JWT w `localStorage`.
   - Po zalogowaniu – ochrona widoków (guard), pasek nawigacji z informacjami o użytkowniku i przyciskiem „Wyloguj”.
   - Panel administratora (`/admin/users`) do przeglądania, zatwierdzania, dezaktywowania oraz usuwania kont (tylko rola `ADMIN`).
+  - Panel kategorii (`/categories`) dla ról `ADMIN` i `MANAGER` – tworzenie, edycja i usuwanie kategorii wraz z podglądem liczby przypisanych części.
   - Lista części z filtrowaniem po nazwie, numerze katalogowym i kategorii oraz wizualizacją stanów minimalnych.
   - Nowo zarejestrowani użytkownicy otrzymują rolę `TECHNICIAN`; administrator przyznaje inne role podczas zatwierdzania.
 
