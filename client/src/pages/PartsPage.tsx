@@ -129,13 +129,11 @@ export function PartsPage() {
         catalogNumber: form.catalogNumber.trim(),
         name: form.name.trim(),
         description: form.description.trim() || null,
-        manufacturer: null,
         categoryId: form.categoryId || null,
         unit: form.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: form.storageLocation.trim() || null,
-        barcode: form.catalogNumber.trim(),
       });
 
       setParts((prev) => [response.part, ...prev]);
@@ -194,13 +192,11 @@ export function PartsPage() {
         catalogNumber: editingForm.catalogNumber.trim(),
         name: editingForm.name.trim(),
         description: editingForm.description.trim() || null,
-        manufacturer: null,
         categoryId: editingForm.categoryId || null,
         unit: editingForm.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: editingForm.storageLocation.trim() || null,
-        barcode: editingForm.catalogNumber.trim(),
       });
 
       setParts((prev) => prev.map((part) => (part.id === partId ? response.part : part)));

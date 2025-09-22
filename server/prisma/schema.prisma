@@ -50,14 +50,12 @@ model Part {
   catalogNumber    String            @unique
   name             String
   description      String?
-  manufacturer     String?
   categoryId       String?
   category         Category?         @relation(fields: [categoryId], references: [id])
   unit             String?           @default("szt")
   minimumQuantity  Decimal?
   currentQuantity  Decimal           @default(0)
   storageLocation  String?
-  barcode          String?           @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   movements        StockMovement[]

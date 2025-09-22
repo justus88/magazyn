@@ -5,14 +5,12 @@ export interface Part {
   catalogNumber: string;
   name: string;
   description: string | null;
-  manufacturer: string | null;
   categoryId: string | null;
   category: string | null;
   unit: string | null;
   minimumQuantity: number | null;
   currentQuantity: number;
   storageLocation: string | null;
-  barcode: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -55,13 +53,11 @@ export async function createPart(
     catalogNumber: string;
     name: string;
     description?: string | null;
-    manufacturer?: string | null;
     categoryId?: string | null;
     unit?: string | null;
     minimumQuantity?: number | null;
     currentQuantity?: number | null;
     storageLocation?: string | null;
-    barcode?: string | null;
   }
 ) {
   return apiRequest<{ part: Part }>(`/api/parts`, {
@@ -78,13 +74,11 @@ export async function updatePart(
     catalogNumber?: string;
     name?: string;
     description?: string | null;
-    manufacturer?: string | null;
     categoryId?: string | null;
     unit?: string | null;
     minimumQuantity?: number | null;
     currentQuantity?: number | null;
     storageLocation?: string | null;
-    barcode?: string | null;
   }
 ) {
   return apiRequest<{ part: Part }>(`/api/parts/${partId}`, {

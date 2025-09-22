@@ -23,13 +23,11 @@ const createPartSchema = z.object({
   catalogNumber: z.string().min(1, 'Numer katalogowy jest wymagany'),
   name: z.string().min(1, 'Nazwa jest wymagana'),
   description: z.string().max(2000).optional(),
-  manufacturer: z.string().max(255).optional(),
   categoryId: categoryIdField,
   unit: z.string().max(32).optional(),
   minimumQuantity: numberField,
   currentQuantity: numberField,
   storageLocation: z.string().max(255).optional(),
-  barcode: z.string().max(255).optional(),
 });
 
 const updatePartSchema = createPartSchema.partial();
@@ -40,14 +38,12 @@ function serializePart(part: Prisma.PartGetPayload<{ include: { category: true }
     catalogNumber: part.catalogNumber,
     name: part.name,
     description: part.description,
-    manufacturer: part.manufacturer,
     categoryId: part.categoryId,
     category: part.category?.name ?? null,
     unit: part.unit,
     minimumQuantity: part.minimumQuantity !== null ? Number(part.minimumQuantity) : null,
     currentQuantity: Number(part.currentQuantity),
     storageLocation: part.storageLocation,
-    barcode: part.barcode,
     createdAt: part.createdAt,
     updatedAt: part.updatedAt,
   };
@@ -193,13 +189,11 @@ router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), asyn
         catalogNumber: payload.catalogNumber.trim(),
         name: payload.name.trim(),
         description: payload.description?.trim() || null,
-        manufacturer: payload.manufacturer?.trim() || null,
         categoryId: payload.categoryId,
         unit: unitNormalized,
         minimumQuantity,
         currentQuantity,
         storageLocation: payload.storageLocation?.trim() || null,
-        barcode: payload.barcode?.trim() || null,
       },
       include: { category: true },
     });
@@ -258,8 +252,6 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
         name: payload.name?.trim(),
         description:
           payload.description !== undefined ? payload.description?.trim() || null : undefined,
-        manufacturer:
-          payload.manufacturer !== undefined ? payload.manufacturer?.trim() || null : undefined,
         categoryId: payload.categoryId,
         unit: payload.unit !== undefined ? requestedUnit : undefined,
         minimumQuantity: payload.minimumQuantity ?? undefined,
@@ -268,7 +260,6 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
           payload.storageLocation !== undefined
             ? payload.storageLocation?.trim() || null
             : undefined,
-        barcode: payload.barcode !== undefined ? payload.barcode?.trim() || null : undefined,
       },
       include: { category: true },
     });
