@@ -24,26 +24,22 @@ interface PartFormState {
   catalogNumber: string;
   name: string;
   description: string;
-  manufacturer: string;
   categoryId: string;
   unit: 'szt' | 'kg';
   minimumQuantity: string;
   currentQuantity: string;
   storageLocation: string;
-  barcode: string;
 }
 
 const emptyForm: PartFormState = {
   catalogNumber: '',
   name: '',
   description: '',
-  manufacturer: '',
   categoryId: '',
   unit: 'szt',
   minimumQuantity: '',
   currentQuantity: '',
   storageLocation: '',
-  barcode: '',
 };
 
 function parseNumber(value: string): number | null {
@@ -129,17 +125,17 @@ export function PartsPage() {
     }
 
     try {
-    const response = await createPart(token, {
-      catalogNumber: form.catalogNumber.trim(),
-      name: form.name.trim(),
-      description: form.description.trim() || null,
-      manufacturer: form.manufacturer.trim() || null,
-      categoryId: form.categoryId || null,
-      unit: form.unit,
+      const response = await createPart(token, {
+        catalogNumber: form.catalogNumber.trim(),
+        name: form.name.trim(),
+        description: form.description.trim() || null,
+        manufacturer: null,
+        categoryId: form.categoryId || null,
+        unit: form.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: form.storageLocation.trim() || null,
-        barcode: form.barcode.trim() || null,
+        barcode: form.catalogNumber.trim(),
       });
 
       setParts((prev) => [response.part, ...prev]);
@@ -157,13 +153,11 @@ export function PartsPage() {
       catalogNumber: part.catalogNumber,
       name: part.name,
       description: part.description ?? '',
-      manufacturer: part.manufacturer ?? '',
       categoryId: part.categoryId ?? '',
       unit: normalizedUnit,
       minimumQuantity: part.minimumQuantity !== null ? String(part.minimumQuantity) : '',
       currentQuantity: String(part.currentQuantity),
       storageLocation: part.storageLocation ?? '',
-      barcode: part.barcode ?? '',
     });
   }
 
@@ -200,13 +194,13 @@ export function PartsPage() {
         catalogNumber: editingForm.catalogNumber.trim(),
         name: editingForm.name.trim(),
         description: editingForm.description.trim() || null,
-        manufacturer: editingForm.manufacturer.trim() || null,
+        manufacturer: null,
         categoryId: editingForm.categoryId || null,
         unit: editingForm.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: editingForm.storageLocation.trim() || null,
-        barcode: editingForm.barcode.trim() || null,
+        barcode: editingForm.catalogNumber.trim(),
       });
 
       setParts((prev) => prev.map((part) => (part.id === partId ? response.part : part)));
@@ -347,13 +341,6 @@ export function PartsPage() {
                 </select>
               </label>
               <label className="field">
-                <span>Producent</span>
-                <input
-                  value={form.manufacturer}
-                  onChange={(event) => setForm((prev) => ({ ...prev, manufacturer: event.target.value }))}
-                />
-              </label>
-              <label className="field">
                 <span>Jednostka</span>
               <select
                 value={form.unit}
@@ -391,13 +378,6 @@ export function PartsPage() {
                   value={form.storageLocation}
                   onChange={(event) => setForm((prev) => ({ ...prev, storageLocation: event.target.value }))}
                   placeholder="np. Regał A"
-                />
-              </label>
-              <label className="field">
-                <span>Kod kreskowy</span>
-                <input
-                  value={form.barcode}
-                  onChange={(event) => setForm((prev) => ({ ...prev, barcode: event.target.value }))}
                 />
               </label>
             </div>
@@ -543,7 +523,6 @@ export function PartsPage() {
                   </span>
                   <span data-label="Nazwa">
                     <strong>{part.name}</strong>
-                    {part.manufacturer ? <small>{part.manufacturer}</small> : null}
                   </span>
                   <span data-label="Kategoria">{part.category ?? '—'}</span>
                   <span data-label="Jednostka">{part.unit ?? '—'}</span>
