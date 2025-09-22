@@ -157,6 +157,7 @@ export function MovementsPage() {
             {parts.map((part) => (
               <option key={part.id} value={part.id}>
                 {part.catalogNumber} – {part.name}
+                {part.unit ? ` (${part.unit})` : ''}
               </option>
             ))}
           </select>

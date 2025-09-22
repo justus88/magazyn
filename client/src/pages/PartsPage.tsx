@@ -26,7 +26,7 @@ interface PartFormState {
   description: string;
   manufacturer: string;
   categoryId: string;
-  unit: string;
+  unit: 'szt' | 'kg';
   minimumQuantity: string;
   currentQuantity: string;
   storageLocation: string;
@@ -129,13 +129,13 @@ export function PartsPage() {
     }
 
     try {
-      const response = await createPart(token, {
-        catalogNumber: form.catalogNumber.trim(),
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        manufacturer: form.manufacturer.trim() || null,
-        categoryId: form.categoryId || null,
-        unit: form.unit.trim() || null,
+    const response = await createPart(token, {
+      catalogNumber: form.catalogNumber.trim(),
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      manufacturer: form.manufacturer.trim() || null,
+      categoryId: form.categoryId || null,
+      unit: form.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: form.storageLocation.trim() || null,
@@ -152,13 +152,14 @@ export function PartsPage() {
 
   function startEditing(part: Part) {
     setEditingId(part.id);
+    const normalizedUnit = part.unit === 'kg' ? 'kg' : 'szt';
     setEditingForm({
       catalogNumber: part.catalogNumber,
       name: part.name,
       description: part.description ?? '',
       manufacturer: part.manufacturer ?? '',
       categoryId: part.categoryId ?? '',
-      unit: part.unit ?? '',
+      unit: normalizedUnit,
       minimumQuantity: part.minimumQuantity !== null ? String(part.minimumQuantity) : '',
       currentQuantity: String(part.currentQuantity),
       storageLocation: part.storageLocation ?? '',
@@ -201,7 +202,7 @@ export function PartsPage() {
         description: editingForm.description.trim() || null,
         manufacturer: editingForm.manufacturer.trim() || null,
         categoryId: editingForm.categoryId || null,
-        unit: editingForm.unit.trim() || null,
+        unit: editingForm.unit,
         minimumQuantity,
         currentQuantity,
         storageLocation: editingForm.storageLocation.trim() || null,
@@ -354,10 +355,15 @@ export function PartsPage() {
               </label>
               <label className="field">
                 <span>Jednostka</span>
-                <input
-                  value={form.unit}
-                  onChange={(event) => setForm((prev) => ({ ...prev, unit: event.target.value }))}
-                />
+              <select
+                value={form.unit}
+                onChange={(event) =>
+                  setForm((prev) => ({ ...prev, unit: event.target.value as 'szt' | 'kg' }))
+                }
+              >
+                <option value="szt">szt</option>
+                <option value="kg">kg</option>
+              </select>
               </label>
             <label className="field">
               <span>Min. ilość</span>
@@ -418,6 +424,7 @@ export function PartsPage() {
             <span>Numer katalogowy</span>
             <span>Nazwa</span>
             <span>Kategoria</span>
+            <span>Jednostka</span>
             <span>Ilość</span>
             <span>Min.</span>
             <span>Lokalizacja</span>
@@ -469,6 +476,20 @@ export function PartsPage() {
                             {category.name}
                           </option>
                         ))}
+                      </select>
+                    </span>
+                    <span data-label="Jednostka">
+                      <select
+                        value={editingForm.unit}
+                        onChange={(event) =>
+                          setEditingForm((prev) => ({
+                            ...prev,
+                            unit: event.target.value as 'szt' | 'kg',
+                          }))
+                        }
+                      >
+                        <option value="szt">szt</option>
+                        <option value="kg">kg</option>
                       </select>
                     </span>
                     <span data-label="Ilość">
@@ -525,12 +546,12 @@ export function PartsPage() {
                     {part.manufacturer ? <small>{part.manufacturer}</small> : null}
                   </span>
                   <span data-label="Kategoria">{part.category ?? '—'}</span>
+                  <span data-label="Jednostka">{part.unit ?? '—'}</span>
                   <span
                     data-label="Ilość"
                     className={isLow ? 'parts-table__qty parts-table__qty--low' : 'parts-table__qty'}
                   >
                     {part.currentQuantity}
-                    {part.unit ? ` ${part.unit}` : ''}
                   </span>
                   <span data-label="Min.">{part.minimumQuantity ?? '—'}</span>
                   <span data-label="Lokalizacja">{part.storageLocation ?? '—'}</span>

@@ -24,6 +24,10 @@
   gap: 1rem;
 }
 
+.movements-page__filters .field {
+  flex: 1 1 220px;
+}
+
 .field {
   display: grid;
   gap: 0.35rem;
@@ -38,6 +42,7 @@
   border: 1px solid #cbd5f5;
   background: #fff;
   font-size: 1rem;
+  width: 100%;
 }
 
 .movements-page__refresh {
