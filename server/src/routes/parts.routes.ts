@@ -6,6 +6,15 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
+const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
+
+function requiresIntegerUnit(unit?: string | null) {
+  if (!unit) {
+    return false;
+  }
+  return INTEGER_UNITS.has(unit.trim().toLowerCase());
+}
+
 const numberField = z.coerce.number().min(0).optional();
 const categoryIdField = z
   .preprocess((value) => (value === '' || value === null ? undefined : value), z.string().uuid().optional());
@@ -159,18 +168,38 @@ router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), asyn
   try {
     const payload = createPartSchema.parse(req.body);
 
+    const unitNormalized = payload.unit ? payload.unit.trim() : null;
+    const mustBeInteger = requiresIntegerUnit(unitNormalized);
+
+    const minimumQuantity =
+      payload.minimumQuantity !== undefined ? payload.minimumQuantity : null;
+    const currentQuantity = payload.currentQuantity ?? 0;
+
+    if (mustBeInteger) {
+      if (minimumQuantity !== null && !Number.isInteger(minimumQuantity)) {
+        return res
+          .status(400)
+          .json({ message: 'Dla jednostki "szt" wartość minimalna musi być liczbą całkowitą.' });
+      }
+      if (!Number.isInteger(currentQuantity)) {
+        return res
+          .status(400)
+          .json({ message: 'Dla jednostki "szt" bieżąca ilość musi być liczbą całkowitą.' });
+      }
+    }
+
     const part = await prisma.part.create({
       data: {
-        catalogNumber: payload.catalogNumber,
-        name: payload.name,
-        description: payload.description,
-        manufacturer: payload.manufacturer,
+        catalogNumber: payload.catalogNumber.trim(),
+        name: payload.name.trim(),
+        description: payload.description?.trim() || null,
+        manufacturer: payload.manufacturer?.trim() || null,
         categoryId: payload.categoryId,
-        unit: payload.unit,
-        minimumQuantity: payload.minimumQuantity,
-        currentQuantity: payload.currentQuantity ?? 0,
-        storageLocation: payload.storageLocation,
-        barcode: payload.barcode,
+        unit: unitNormalized,
+        minimumQuantity,
+        currentQuantity,
+        storageLocation: payload.storageLocation?.trim() || null,
+        barcode: payload.barcode?.trim() || null,
       },
       include: { category: true },
     });
@@ -197,12 +226,49 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
   try {
     const payload = updatePartSchema.parse(req.body);
 
+    const existing = await prisma.part.findUnique({
+      where: { id: req.params.id },
+      select: { unit: true },
+    });
+
+    if (!existing) {
+      return res.status(404).json({ message: 'Część nie została znaleziona' });
+    }
+
+    const requestedUnit = payload.unit !== undefined ? payload.unit?.trim() || null : existing.unit;
+    const mustBeInteger = requiresIntegerUnit(requestedUnit);
+
+    if (mustBeInteger) {
+      if (payload.minimumQuantity !== undefined && payload.minimumQuantity !== null && !Number.isInteger(payload.minimumQuantity)) {
+        return res
+          .status(400)
+          .json({ message: 'Dla jednostki "szt" wartość minimalna musi być liczbą całkowitą.' });
+      }
+      if (payload.currentQuantity !== undefined && payload.currentQuantity !== null && !Number.isInteger(payload.currentQuantity)) {
+        return res
+          .status(400)
+          .json({ message: 'Dla jednostki "szt" bieżąca ilość musi być liczbą całkowitą.' });
+      }
+    }
+
     const part = await prisma.part.update({
       where: { id: req.params.id },
       data: {
-        ...payload,
-        currentQuantity: payload.currentQuantity ?? undefined,
+        catalogNumber: payload.catalogNumber?.trim(),
+        name: payload.name?.trim(),
+        description:
+          payload.description !== undefined ? payload.description?.trim() || null : undefined,
+        manufacturer:
+          payload.manufacturer !== undefined ? payload.manufacturer?.trim() || null : undefined,
+        categoryId: payload.categoryId,
+        unit: payload.unit !== undefined ? requestedUnit : undefined,
         minimumQuantity: payload.minimumQuantity ?? undefined,
+        currentQuantity: payload.currentQuantity ?? undefined,
+        storageLocation:
+          payload.storageLocation !== undefined
+            ? payload.storageLocation?.trim() || null
+            : undefined,
+        barcode: payload.barcode !== undefined ? payload.barcode?.trim() || null : undefined,
       },
       include: { category: true },
     });

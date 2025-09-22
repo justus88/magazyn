@@ -59,6 +59,7 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   - Autoryzacja: rejestracja i logowanie (`/api/auth/register`, `/api/auth/login`) z JWT + middleware `authenticate`/`authorize`.
   - CRUD dla kategorii (`/api/categories`) i części (`/api/parts`) z walidacją Zod oraz obsługą kolizji danych w bazie.
   - Seed przykładowych części (lista startowa od Alstomu) – `npm run db:seed`.
+  - Walidacja ilości: dla jednostek `szt` (oraz wariantów) ilości magazynowe i ruchy muszą być liczbami całkowitymi.
 - **Frontend**
   - Pełny flow logowania i rejestracji (formularze + walidacja) z zapisem tokenu JWT w `localStorage`.
   - Po zalogowaniu – ochrona widoków (guard), pasek nawigacji z informacjami o użytkowniku i przyciskiem „Wyloguj”.

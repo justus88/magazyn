@@ -6,6 +6,15 @@ import { authenticate, authorize } from '../middleware/auth';
 
 const router = Router();
 
+const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
+
+function requiresIntegerUnit(unit?: string | null) {
+  if (!unit) {
+    return false;
+  }
+  return INTEGER_UNITS.has(unit.trim().toLowerCase());
+}
+
 const dateCoerce = z
   .union([z.string(), z.date()])
   .transform((value) => {
@@ -178,6 +187,10 @@ router.post(
         const movementQuantity = new Prisma.Decimal(payload.quantity);
         let newQuantity = currentQuantity;
 
+        if (requiresIntegerUnit(part.unit) && !movementQuantity.isInteger()) {
+          throw new Error('INTEGER_REQUIRED');
+        }
+
         switch (payload.movementType) {
           case StockMovementType.DELIVERY:
             if (movementQuantity.lessThanOrEqualTo(0)) {
@@ -265,6 +278,11 @@ router.post(
         }
         if (error.message === 'QUANTITY_BELOW_ZERO') {
           return res.status(400).json({ message: 'Operacja spowodowałaby ujemny stan magazynowy' });
+        }
+        if (error.message === 'INTEGER_REQUIRED') {
+          return res
+            .status(400)
+            .json({ message: 'Dla jednostki "szt" ilość musi być liczbą całkowitą.' });
         }
       }
 

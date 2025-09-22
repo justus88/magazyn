@@ -11,6 +11,15 @@ import {
 import { useAuthContext } from '../context/AuthContext';
 import './PartsPage.css';
 
+const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
+
+function usesIntegerUnit(unit?: string | null) {
+  if (!unit) {
+    return false;
+  }
+  return INTEGER_UNITS.has(unit.trim().toLowerCase());
+}
+
 interface PartFormState {
   catalogNumber: string;
   name: string;
@@ -102,6 +111,23 @@ export function PartsPage() {
       return;
     }
 
+    const requiresInteger = usesIntegerUnit(form.unit);
+    const minimumQuantity = parseNumber(form.minimumQuantity);
+    const currentQuantity = parseNumber(form.currentQuantity) ?? 0;
+
+    setError(null);
+
+    if (requiresInteger) {
+      if (minimumQuantity !== null && !Number.isInteger(minimumQuantity)) {
+        setError('Dla jednostki "szt" ilość minimalna musi być liczbą całkowitą.');
+        return;
+      }
+      if (!Number.isInteger(currentQuantity)) {
+        setError('Dla jednostki "szt" bieżąca ilość musi być liczbą całkowitą.');
+        return;
+      }
+    }
+
     try {
       const response = await createPart(token, {
         catalogNumber: form.catalogNumber.trim(),
@@ -110,8 +136,8 @@ export function PartsPage() {
         manufacturer: form.manufacturer.trim() || null,
         categoryId: form.categoryId || null,
         unit: form.unit.trim() || null,
-        minimumQuantity: parseNumber(form.minimumQuantity),
-        currentQuantity: parseNumber(form.currentQuantity) ?? 0,
+        minimumQuantity,
+        currentQuantity,
         storageLocation: form.storageLocation.trim() || null,
         barcode: form.barcode.trim() || null,
       });
@@ -151,6 +177,23 @@ export function PartsPage() {
       return;
     }
 
+    const requiresInteger = usesIntegerUnit(editingForm.unit);
+    const minimumQuantity = parseNumber(editingForm.minimumQuantity);
+    const currentQuantity = parseNumber(editingForm.currentQuantity);
+
+    setError(null);
+
+    if (requiresInteger) {
+      if (minimumQuantity !== null && !Number.isInteger(minimumQuantity)) {
+        setError('Dla jednostki "szt" ilość minimalna musi być liczbą całkowitą.');
+        return;
+      }
+      if (currentQuantity !== null && !Number.isInteger(currentQuantity)) {
+        setError('Dla jednostki "szt" bieżąca ilość musi być liczbą całkowitą.');
+        return;
+      }
+    }
+
     try {
       const response = await updatePart(token, partId, {
         catalogNumber: editingForm.catalogNumber.trim(),
@@ -159,8 +202,8 @@ export function PartsPage() {
         manufacturer: editingForm.manufacturer.trim() || null,
         categoryId: editingForm.categoryId || null,
         unit: editingForm.unit.trim() || null,
-        minimumQuantity: parseNumber(editingForm.minimumQuantity),
-        currentQuantity: parseNumber(editingForm.currentQuantity),
+        minimumQuantity,
+        currentQuantity,
         storageLocation: editingForm.storageLocation.trim() || null,
         barcode: editingForm.barcode.trim() || null,
       });
@@ -316,22 +359,26 @@ export function PartsPage() {
                   onChange={(event) => setForm((prev) => ({ ...prev, unit: event.target.value }))}
                 />
               </label>
-              <label className="field">
-                <span>Min. ilość</span>
-                <input
-                  value={form.minimumQuantity}
-                  onChange={(event) => setForm((prev) => ({ ...prev, minimumQuantity: event.target.value }))}
-                  placeholder="np. 5"
-                />
-              </label>
-              <label className="field">
-                <span>Aktualna ilość</span>
-                <input
-                  value={form.currentQuantity}
-                  onChange={(event) => setForm((prev) => ({ ...prev, currentQuantity: event.target.value }))}
-                  placeholder="np. 10"
-                />
-              </label>
+            <label className="field">
+              <span>Min. ilość</span>
+              <input
+                type="number"
+                step={usesIntegerUnit(form.unit) ? '1' : '0.01'}
+                value={form.minimumQuantity}
+                onChange={(event) => setForm((prev) => ({ ...prev, minimumQuantity: event.target.value }))}
+                placeholder="np. 5"
+              />
+            </label>
+            <label className="field">
+              <span>Aktualna ilość</span>
+              <input
+                type="number"
+                step={usesIntegerUnit(form.unit) ? '1' : '0.01'}
+                value={form.currentQuantity}
+                onChange={(event) => setForm((prev) => ({ ...prev, currentQuantity: event.target.value }))}
+                placeholder="np. 10"
+              />
+            </label>
               <label className="field">
                 <span>Lokalizacja</span>
                 <input
@@ -426,6 +473,8 @@ export function PartsPage() {
                     </span>
                     <span data-label="Ilość">
                       <input
+                        type="number"
+                        step={usesIntegerUnit(editingForm.unit) ? '1' : '0.01'}
                         value={editingForm.currentQuantity}
                         onChange={(event) =>
                           setEditingForm((prev) => ({ ...prev, currentQuantity: event.target.value }))
@@ -434,6 +483,8 @@ export function PartsPage() {
                     </span>
                     <span data-label="Min.">
                       <input
+                        type="number"
+                        step={usesIntegerUnit(editingForm.unit) ? '1' : '0.01'}
                         value={editingForm.minimumQuantity}
                         onChange={(event) =>
                           setEditingForm((prev) => ({ ...prev, minimumQuantity: event.target.value }))

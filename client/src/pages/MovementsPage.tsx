@@ -10,6 +10,15 @@ import {
 import { useAuthContext } from '../context/AuthContext';
 import './MovementsPage.css';
 
+const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
+
+function usesIntegerUnit(unit?: string | null) {
+  if (!unit) {
+    return false;
+  }
+  return INTEGER_UNITS.has(unit.trim().toLowerCase());
+}
+
 interface MovementFormState {
   partId: string;
   movementType: MovementType;
@@ -35,12 +44,18 @@ const defaultForm: MovementFormState = {
 export function MovementsPage() {
   const { token } = useAuthContext();
   const [movements, setMovements] = useState<Movement[]>([]);
-  const [parts, setParts] = useState<{ id: string; name: string; catalogNumber: string }[]>([]);
+  const [parts, setParts] = useState<{ id: string; name: string; catalogNumber: string; unit: string | null }[]>([]);
   const [form, setForm] = useState<MovementFormState>(defaultForm);
   const [filters, setFilters] = useState({ partId: '', movementType: 'ALL' as 'ALL' | MovementType });
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedPart = useMemo(
+    () => parts.find((part) => part.id === form.partId) ?? null,
+    [parts, form.partId],
+  );
+  const requiresInteger = usesIntegerUnit(selectedPart?.unit);
 
   const canSubmit = useMemo(() => {
     return form.partId && form.quantity.trim();
@@ -70,6 +85,7 @@ export function MovementsPage() {
           id: part.id,
           name: part.name,
           catalogNumber: part.catalogNumber,
+          unit: part.unit ?? null,
         })),
       );
     } catch (err) {
@@ -91,8 +107,14 @@ export function MovementsPage() {
     }
 
     const parsedQuantity = Number(form.quantity.replace(',', '.'));
+    setError(null);
     if (!Number.isFinite(parsedQuantity) || parsedQuantity === 0) {
       setError('Podaj prawidłową ilość (różną od zera).');
+      return;
+    }
+
+    if (requiresInteger && !Number.isInteger(parsedQuantity)) {
+      setError('Dla jednostki "szt" ilość musi być liczbą całkowitą.');
       return;
     }
 
@@ -208,7 +230,7 @@ export function MovementsPage() {
               <span>Ilość</span>
               <input
                 type="number"
-                step="0.01"
+                step={requiresInteger ? '1' : '0.01'}
                 value={form.quantity}
                 onChange={(event) => setForm((prev) => ({ ...prev, quantity: event.target.value }))}
                 required
