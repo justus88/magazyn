@@ -12,3 +12,5 @@ coverage/
 .tmp/
 .idea/
 .vscode/
+*.xls
+*.xlsx
