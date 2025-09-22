@@ -6,6 +6,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CategoriesPage } from './pages/CategoriesPage';
+import { PartsPage } from './pages/PartsPage';
 import './App.css';
 
 function AuthenticatedHeader() {
@@ -27,6 +28,11 @@ function AuthenticatedHeader() {
         {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
           <Link to="/categories" className="top-nav__link">
             Kategorie
+          </Link>
+        )}
+        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+          <Link to="/parts" className="top-nav__link">
+            Części
           </Link>
         )}
         {user.role === 'ADMIN' ? (
@@ -65,6 +71,7 @@ export default function App() {
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
             <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/parts" element={<PartsPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
