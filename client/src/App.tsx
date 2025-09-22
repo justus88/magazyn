@@ -7,6 +7,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PartsPage } from './pages/PartsPage';
+import { MovementsPage } from './pages/MovementsPage';
 import './App.css';
 
 function AuthenticatedHeader() {
@@ -35,6 +36,9 @@ function AuthenticatedHeader() {
             Części
           </Link>
         )}
+        <Link to="/movements" className="top-nav__link">
+          Ruchy
+        </Link>
         {user.role === 'ADMIN' ? (
           <Link to="/admin/users" className="top-nav__link">
             Panel administratora
@@ -72,6 +76,10 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/parts" element={<PartsPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'TECHNICIAN']} />}>
+            <Route path="/movements" element={<MovementsPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>

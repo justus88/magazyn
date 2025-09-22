@@ -51,7 +51,7 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   Przy pierwszym uruchomieniu przejdź na `/register`, utwórz konto (rola domyślnie „Serwisant”). Konto będzie oczekiwać na zatwierdzenie przez administratora. Po akceptacji zaloguj się na `/login` – token JWT zostanie zapisany w `localStorage` i automatycznie dołączany do dalszych zapytań.
 
   Panel administratora jest dostępny pod `/admin/users` (widoczny w menu tylko dla roli ADMIN) i pozwala zatwierdzać/dezaktywować/usuwać konta.
-  Panel kategorii znajduje się pod `/categories`, a panel części pod `/parts` – obydwa widoczne dla ról ADMIN/MANAGER.
+  Panel kategorii znajduje się pod `/categories`, panel części pod `/parts`, a rejestr ruchów magazynowych pod `/movements` – dostęp dla ról ADMIN/MANAGER (w przypadku ruchów także TECHNICIAN).
 
 ## Co już działa?
 - **Backend**
