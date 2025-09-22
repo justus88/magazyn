@@ -164,7 +164,7 @@ router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), asyn
   try {
     const payload = createPartSchema.parse(req.body);
 
-    const unitNormalized = payload.unit ? payload.unit.trim() : null;
+    const unitNormalized = payload.unit ? payload.unit.trim().toLowerCase() : null;
     const mustBeInteger = requiresIntegerUnit(unitNormalized);
 
     const minimumQuantity =
@@ -229,7 +229,9 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
       return res.status(404).json({ message: 'Część nie została znaleziona' });
     }
 
-    const requestedUnit = payload.unit !== undefined ? payload.unit?.trim() || null : existing.unit;
+    const currentUnit = existing.unit ? existing.unit.trim().toLowerCase() : null;
+    const requestedUnit =
+      payload.unit !== undefined ? payload.unit?.trim().toLowerCase() || null : currentUnit;
     const mustBeInteger = requiresIntegerUnit(requestedUnit);
 
     if (mustBeInteger) {
@@ -288,7 +290,11 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
 
 router.delete('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
   try {
-    await prisma.part.delete({ where: { id: req.params.id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.stockMovement.deleteMany({ where: { partId: req.params.id } });
+      await tx.stockLevel.deleteMany({ where: { partId: req.params.id } });
+      await tx.part.delete({ where: { id: req.params.id } });
+    });
     return res.status(204).send();
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

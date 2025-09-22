@@ -8,6 +8,7 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PartsPage } from './pages/PartsPage';
 import { MovementsPage } from './pages/MovementsPage';
+import { ImportsPage } from './pages/ImportsPage';
 import './App.css';
 
 function AuthenticatedHeader() {
@@ -34,6 +35,11 @@ function AuthenticatedHeader() {
         {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
           <Link to="/parts" className="top-nav__link">
             Części
+          </Link>
+        )}
+        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+          <Link to="/imports" className="top-nav__link">
+            Import SAP
           </Link>
         )}
         <Link to="/movements" className="top-nav__link">
@@ -76,6 +82,7 @@ export default function App() {
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/parts" element={<PartsPage />} />
+            <Route path="/imports" element={<ImportsPage />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'TECHNICIAN']} />}>

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { apiRequest } from '../api/client';
+import { apiRequest, setUnauthorizedHandler } from '../api/client';
 import type { AuthCredentials, AuthResponse, AuthUser, RegisterResponse } from '../types/auth';
 
 interface AuthContextValue {
@@ -97,6 +97,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setToken(null);
   }, []);
 
+  useEffect(() => {
+    setUnauthorizedHandler(() => logout());
+    return () => setUnauthorizedHandler(null);
+  }, [logout]);
+
   const value = useMemo(
     () => ({
       user,
@@ -112,6 +117,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuthContext() {
   const context = useContext(AuthContext);
   if (!context) {

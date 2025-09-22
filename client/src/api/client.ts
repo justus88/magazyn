@@ -8,15 +8,25 @@ interface RequestOptions<TBody> {
   token?: string | null;
 }
 
+type UnauthorizedHandler = () => void;
+
+let unauthorizedHandler: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler;
+}
+
 export async function apiRequest<TResponse, TBody = unknown>(
   path: string,
   options: RequestOptions<TBody> = {},
 ): Promise<TResponse> {
   const { method = 'GET', body, token } = options;
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = {};
+
+  if (method !== 'GET') {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;
@@ -27,6 +37,10 @@ export async function apiRequest<TResponse, TBody = unknown>(
     headers,
     body: body ? JSON.stringify(body) : undefined,
   });
+
+  if (response.status === 401) {
+    unauthorizedHandler?.();
+  }
 
   if (!response.ok) {
     const isJson = response.headers.get('content-type')?.includes('application/json');

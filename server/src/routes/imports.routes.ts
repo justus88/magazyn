@@ -1,12 +1,22 @@
 import { Router } from 'express';
 import multer from 'multer';
 import XLSX from 'xlsx';
+import { z } from 'zod';
+import { Prisma, StockMovementType, UserRole } from '@prisma/client';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize } from '../middleware/auth';
-import { UserRole } from '@prisma/client';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+
+const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
+
+function requiresIntegerUnit(unit?: string | null) {
+  if (!unit) {
+    return false;
+  }
+  return INTEGER_UNITS.has(unit.trim().toLowerCase());
+}
 
 function normalizeKey(key: string) {
   return key.trim().toLowerCase().replace(/[\s.\/]/g, '');
@@ -52,6 +62,16 @@ function normalizeCatalogNumber(value: string) {
 }
 
 const SHEET_PRIORITY = ['RawData', 'Format', 'Header'];
+
+const applyAdjustmentsSchema = z.object({
+  adjustments: z.array(
+    z.object({
+      partId: z.string().uuid(),
+      catalogNumber: z.string().min(1),
+      fileQuantity: z.number(),
+    }),
+  ),
+});
 
 router.post(
   '/alstom',
@@ -109,7 +129,8 @@ router.post(
             return null;
           }
 
-          const unit = unitCol ? String(row[unitCol] ?? '').trim() || null : null;
+          const rawUnit = unitCol ? String(row[unitCol] ?? '').trim() : '';
+          const unit = rawUnit ? rawUnit.toLowerCase() : null;
           const name = nameCol ? String(row[nameCol] ?? '').trim() || null : null;
 
           return {
@@ -152,7 +173,10 @@ router.post(
         fileUnit: string | null;
       }> = [];
       const quantityDifferences: Array<{
+        partId: string;
         catalogNumber: string;
+        name: string | null;
+        unit: string | null;
         systemQuantity: number;
         fileQuantity: number;
         difference: number;
@@ -195,7 +219,10 @@ router.post(
         const diff = item.quantity - systemQty;
         if (Math.abs(diff) > 0.0001) {
           quantityDifferences.push({
+            partId: systemPart.id,
             catalogNumber: systemPart.catalogNumber,
+            name: systemPart.name,
+            unit: systemPart.unit,
             systemQuantity: systemQty,
             fileQuantity: item.quantity,
             difference: diff,
@@ -229,6 +256,147 @@ router.post(
         nameDifferences,
       });
     } catch (error) {
+      return next(error);
+    }
+  },
+);
+
+router.post(
+  '/alstom/apply',
+  authenticate,
+  authorize(UserRole.ADMIN, UserRole.MANAGER),
+  async (req, res, next) => {
+    try {
+      const { adjustments } = applyAdjustmentsSchema.parse(req.body);
+
+      if (adjustments.length === 0) {
+        return res.status(400).json({ message: 'Brak pozycji do aktualizacji.' });
+      }
+
+      const applied: Array<{
+        partId: string;
+        catalogNumber: string;
+        name: string | null;
+        previousQuantity: number;
+        newQuantity: number;
+        difference: number;
+        movementId: string;
+      }> = [];
+
+      const skipped: Array<{
+        partId: string;
+        catalogNumber: string;
+        name: string | null;
+        reason: string;
+      }> = [];
+
+      const failed: Array<{
+        partId: string | null;
+        catalogNumber: string;
+        name: string | null;
+        reason: string;
+      }> = [];
+
+      const timestamp = new Date();
+
+      await prisma.$transaction(async (tx) => {
+        for (const item of adjustments) {
+          const part = await tx.part.findUnique({
+            where: { id: item.partId },
+            select: {
+              id: true,
+              catalogNumber: true,
+              name: true,
+              unit: true,
+              currentQuantity: true,
+            },
+          });
+
+          if (!part) {
+            failed.push({ partId: null, catalogNumber: item.catalogNumber, name: null, reason: 'Część nie istnieje.' });
+            continue;
+          }
+
+          const targetQuantity = new Prisma.Decimal(item.fileQuantity);
+          const currentQuantity = new Prisma.Decimal(part.currentQuantity);
+
+          if (targetQuantity.lessThan(0)) {
+            failed.push({
+              partId: part.id,
+              catalogNumber: part.catalogNumber,
+              name: part.name,
+              reason: 'Docelowa ilość nie może być ujemna.',
+            });
+            continue;
+          }
+
+          if (requiresIntegerUnit(part.unit) && !targetQuantity.isInteger()) {
+            failed.push({
+              partId: part.id,
+              catalogNumber: part.catalogNumber,
+              name: part.name,
+              reason: 'Dla tej jednostki wymagana jest ilość całkowita.',
+            });
+            continue;
+          }
+
+          const difference = targetQuantity.minus(currentQuantity);
+
+          if (difference.isZero()) {
+            skipped.push({
+              partId: part.id,
+              catalogNumber: part.catalogNumber,
+              name: part.name,
+              reason: 'Ilości są już zgodne.',
+            });
+            continue;
+          }
+
+          if (requiresIntegerUnit(part.unit) && !difference.isInteger()) {
+            failed.push({
+              partId: part.id,
+              catalogNumber: part.catalogNumber,
+              name: part.name,
+              reason: 'Korekta spowodowałaby wartości niecałkowite.',
+            });
+            continue;
+          }
+
+          const updatedPart = await tx.part.update({
+            where: { id: part.id },
+            data: { currentQuantity: targetQuantity },
+          });
+
+          const movement = await tx.stockMovement.create({
+            data: {
+              partId: part.id,
+              movementType: StockMovementType.ADJUSTMENT,
+              quantity: difference,
+              movementDate: timestamp,
+              notes: 'Korekta wg importu SAP',
+              referenceCode: 'IMPORT_SAP',
+              performedById: req.user?.id ?? null,
+            },
+            select: { id: true },
+          });
+
+          applied.push({
+            partId: updatedPart.id,
+            catalogNumber: updatedPart.catalogNumber,
+            name: part.name,
+            previousQuantity: Number(currentQuantity),
+            newQuantity: Number(targetQuantity),
+            difference: Number(difference),
+            movementId: movement.id,
+          });
+        }
+      });
+
+      return res.json({ applied, skipped, failed });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Nieprawidłowe dane', details: error.flatten() });
+      }
       return next(error);
     }
   },
