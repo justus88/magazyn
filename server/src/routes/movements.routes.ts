@@ -43,6 +43,10 @@ const createMovementSchema = z.object({
   notes: z.string().max(2000).optional(),
 });
 
+const updateMovementNotesSchema = z.object({
+  notes: z.string().max(2000).optional(),
+});
+
 const listMovementsSchema = z.object({
   partId: z.string().uuid().optional(),
   movementType: z.nativeEnum(StockMovementType).optional(),
@@ -173,6 +177,10 @@ router.post(
     try {
       const payload = createMovementSchema.parse(req.body);
 
+      if (payload.referenceCode !== undefined) {
+        payload.referenceCode = payload.referenceCode?.trim() || undefined;
+      }
+
       if (!Number.isFinite(payload.quantity) || payload.quantity === 0) {
         return res.status(400).json({ message: 'Ilość musi być różna od zera' });
       }
@@ -284,6 +292,52 @@ router.post(
             .status(400)
             .json({ message: 'Dla jednostki "szt" ilość musi być liczbą całkowitą.' });
         }
+      }
+
+      return next(error);
+    }
+  },
+);
+
+router.patch(
+  '/:id/notes',
+  authenticate,
+  authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.TECHNICIAN),
+  async (req, res, next) => {
+    try {
+      const payload = updateMovementNotesSchema.parse(req.body);
+
+      const updated = await prisma.stockMovement.update({
+        where: { id: req.params.id },
+        data: {
+          notes: payload.notes?.trim() ? payload.notes.trim() : null,
+        },
+        include: {
+          part: {
+            select: {
+              id: true,
+              name: true,
+              catalogNumber: true,
+            },
+          },
+          performedBy: {
+            select: {
+              id: true,
+              email: true,
+              role: true,
+            },
+          },
+        },
+      });
+
+      return res.json({ movement: serializeMovement(updated) });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return res.status(404).json({ message: 'Ruch nie istnieje lub został usunięty' });
+      }
+
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Nieprawidłowe dane', details: error.flatten() });
       }
 
       return next(error);

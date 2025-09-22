@@ -74,3 +74,15 @@ export async function createMovement(
     body: payload,
   });
 }
+
+export async function updateMovementNotes(
+  token: string,
+  movementId: string,
+  payload: { notes: string },
+) {
+  return apiRequest<{ movement: Movement }>(`/api/movements/${movementId}/notes`, {
+    method: 'PATCH',
+    token,
+    body: payload,
+  });
+}

@@ -116,6 +116,10 @@
   font-size: 0.95rem;
 }
 
+.movements-table__row--with-actions {
+  grid-template-columns: 1.5fr 1fr 1fr 2fr 1.5fr 2fr auto;
+}
+
 .movements-table__row--head {
   font-weight: 600;
   background: transparent;
@@ -128,6 +132,60 @@
   color: #64748b;
   background: rgba(255, 255, 255, 0.75);
   border-radius: 1rem;
+}
+
+.movements-table__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.movements-table__button {
+  padding: 0.45rem 0.9rem;
+  border-radius: 0.6rem;
+  border: none;
+  background: rgba(37, 99, 235, 0.12);
+  color: #1d4ed8;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.movements-table__button:hover {
+  background: rgba(37, 99, 235, 0.2);
+}
+
+.movements-table__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.movements-table__button--secondary {
+  background: rgba(148, 163, 184, 0.25);
+  color: #475569;
+}
+
+.movements-table__button--secondary:hover {
+  background: rgba(148, 163, 184, 0.35);
+}
+
+.movements-page__note-error {
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+}
+
+.movements-table__row textarea {
+  flex: 1;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid #cbd5f5;
+  font-size: 0.95rem;
+  resize: vertical;
+  min-height: 3.5rem;
 }
 
 .badge {
@@ -165,11 +223,11 @@
     grid-template-columns: 1fr;
   }
 
-  .movements-table__row span {
-    display: flex;
-    justify-content: space-between;
-    gap: 0.5rem;
-  }
+.movements-table__row span {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
 
   .movements-table__row span::before {
     content: attr(data-label);

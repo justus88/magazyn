@@ -8,6 +8,7 @@ import {
   type MovementType,
 } from '../api/movements';
 import { useAuthContext } from '../context/AuthContext';
+import { updateMovementNotes } from '../api/movements';
 import './MovementsPage.css';
 
 const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
@@ -42,7 +43,7 @@ const defaultForm: MovementFormState = {
 };
 
 export function MovementsPage() {
-  const { token } = useAuthContext();
+  const { token, user } = useAuthContext();
   const [movements, setMovements] = useState<Movement[]>([]);
   const [parts, setParts] = useState<{ id: string; name: string; catalogNumber: string; unit: string | null }[]>([]);
   const [form, setForm] = useState<MovementFormState>(defaultForm);
@@ -50,13 +51,17 @@ export function MovementsPage() {
   const [dateRange, setDateRange] = useState({ startDate: '', endDate: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [editingMovementId, setEditingMovementId] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [isSavingNote, setIsSavingNote] = useState(false);
 
   const selectedPart = useMemo(
     () => parts.find((part) => part.id === form.partId) ?? null,
     [parts, form.partId],
   );
   const requiresInteger = usesIntegerUnit(selectedPart?.unit);
-
+  const canEditNotes = user ? ['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(user.role) : false;
   const canSubmit = useMemo(() => {
     return form.partId && form.quantity.trim();
   }, [form.partId, form.quantity]);
@@ -134,6 +139,40 @@ export function MovementsPage() {
       loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się zarejestrować ruchu');
+    }
+  }
+
+  function beginEditNotes(movement: Movement) {
+    setEditingMovementId(movement.id);
+    setNoteDraft(movement.notes ?? '');
+    setNoteError(null);
+  }
+
+  function cancelEditNotes() {
+    setEditingMovementId(null);
+    setNoteDraft('');
+    setNoteError(null);
+  }
+
+  async function handleSaveNotes(movementId: string) {
+    if (!token) {
+      setNoteError('Brak tokenu uwierzytelniającego. Zaloguj się ponownie.');
+      return;
+    }
+
+    setIsSavingNote(true);
+    setNoteError(null);
+    const payload = { notes: noteDraft };
+    try {
+      const response = await updateMovementNotes(token, movementId, payload);
+      setMovements((prev) =>
+        prev.map((movement) => (movement.id === movementId ? response.movement : movement)),
+      );
+      cancelEditNotes();
+    } catch (err) {
+      setNoteError(err instanceof Error ? err.message : 'Nie udało się zapisać notatek.');
+    } finally {
+      setIsSavingNote(false);
     }
   }
 
@@ -299,17 +338,23 @@ export function MovementsPage() {
             <span>Część</span>
             <span>Wykonał</span>
             <span>Uwagi</span>
+            {canEditNotes ? <span>Akcje</span> : null}
           </div>
           {isLoading ? (
             <div className="movements-table__empty">Ładowanie historii…</div>
           ) : movements.length === 0 ? (
             <div className="movements-table__empty">Brak zarejestrowanych ruchów.</div>
           ) : (
-            movements.map((movement) => (
-              <div key={movement.id} className="movements-table__row">
-                <span data-label="Data">
-                  {new Date(movement.movementDate).toLocaleString('pl-PL')}
-                </span>
+            movements.map((movement) => {
+              const rowClassName = canEditNotes
+                ? 'movements-table__row movements-table__row--with-actions'
+                : 'movements-table__row';
+
+              return (
+                <div key={movement.id} className={rowClassName}>
+                  <span data-label="Data">
+                    {new Date(movement.movementDate).toLocaleString('pl-PL')}
+                  </span>
                 <span data-label="Typ" className={`badge badge--${movement.movementType.toLowerCase()}`}>
                   {movement.movementType === 'DELIVERY'
                     ? 'Dostawa'
@@ -326,10 +371,56 @@ export function MovementsPage() {
                 <span data-label="Wykonał">{movement.performedBy?.email ?? '—'}</span>
                 <span data-label="Uwagi">
                   {movement.referenceCode ? <strong>{movement.referenceCode}</strong> : null}
-                  {movement.notes ? <p>{movement.notes}</p> : null}
+                  {editingMovementId === movement.id ? (
+                    <>
+                      <textarea
+                        value={noteDraft}
+                        onChange={(event) => setNoteDraft(event.target.value)}
+                        rows={3}
+                      />
+                      {noteError ? <p className="movements-page__note-error">{noteError}</p> : null}
+                    </>
+                  ) : movement.notes ? (
+                    <p>{movement.notes}</p>
+                  ) : (
+                    <p>—</p>
+                  )}
                 </span>
-              </div>
-            ))
+                {canEditNotes ? (
+                  <span data-label="Akcje" className="movements-table__actions">
+                    {editingMovementId === movement.id ? (
+                      <>
+                        <button
+                          type="button"
+                          className="movements-table__button"
+                          onClick={() => handleSaveNotes(movement.id)}
+                          disabled={isSavingNote}
+                        >
+                          {isSavingNote ? 'Zapisywanie…' : 'Zapisz'}
+                        </button>
+                        <button
+                          type="button"
+                          className="movements-table__button movements-table__button--secondary"
+                          onClick={cancelEditNotes}
+                          disabled={isSavingNote}
+                        >
+                          Anuluj
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        className="movements-table__button"
+                        onClick={() => beginEditNotes(movement)}
+                      >
+                        Edytuj
+                      </button>
+                    )}
+                  </span>
+                ) : null}
+                </div>
+              );
+            })
           )}
         </div>
       </section>
