@@ -25,7 +25,11 @@ model User {
   email         String           @unique
   passwordHash  String
   role          UserRole         @default(VIEWER)
-  isActive      Boolean          @default(true)
+  isActive      Boolean          @default(false)
+  approvedAt    DateTime?
+  approvedById  String?
+  approvedBy    User?            @relation("UserApproval", fields: [approvedById], references: [id])
+  approvedUsers User[]           @relation("UserApproval")
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   movements     StockMovement[]

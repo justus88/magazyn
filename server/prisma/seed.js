@@ -1,4 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient, UserRole } = require('@prisma/client');
+const bcrypt = require('bcryptjs');
 
 const prisma = new PrismaClient();
 
@@ -36,6 +37,30 @@ const rawParts = [
 ];
 
 async function main() {
+  const adminEmail = process.env.SEED_ADMIN_EMAIL || 'admin@magazyn.local';
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD || 'Admin123!';
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+
+  const adminUser = await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {
+      passwordHash,
+      role: UserRole.ADMIN,
+      isActive: true,
+      approvedAt: new Date(),
+    },
+    create: {
+      email: adminEmail,
+      passwordHash,
+      role: UserRole.ADMIN,
+      isActive: true,
+      approvedAt: new Date(),
+    },
+  });
+
+  console.log(`Seed admin account ready: ${adminUser.email}`);
+
   const categoryMap = new Map();
 
   for (const category of categories) {

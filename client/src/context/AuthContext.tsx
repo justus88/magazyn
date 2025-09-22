@@ -1,14 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { apiRequest } from '../api/client';
-import type { AuthCredentials, AuthResponse, AuthUser } from '../types/auth';
+import type { AuthCredentials, AuthResponse, AuthUser, RegisterResponse } from '../types/auth';
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   login: (credentials: AuthCredentials) => Promise<void>;
-  register: (payload: AuthCredentials & { role?: AuthUser['role'] }) => Promise<void>;
+  register: (payload: AuthCredentials) => Promise<RegisterResponse>;
   logout: () => void;
 }
 
@@ -84,16 +84,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     handleAuthSuccess(response);
   }, [handleAuthSuccess]);
 
-  const register = useCallback(
-    async (payload: AuthCredentials & { role?: AuthUser['role'] }) => {
-      const response = await apiRequest<AuthResponse, typeof payload>('/api/auth/register', {
-        method: 'POST',
-        body: payload,
-      });
-      handleAuthSuccess(response);
-    },
-    [handleAuthSuccess],
-  );
+  const register = useCallback(async (payload: AuthCredentials) => {
+    const response = await apiRequest<RegisterResponse, typeof payload>('/api/auth/register', {
+      method: 'POST',
+      body: payload,
+    });
+    return response;
+  }, []);
 
   const logout = useCallback(() => {
     setUser(null);

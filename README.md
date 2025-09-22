@@ -27,9 +27,11 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
    ```
 3. **Migracje i dane startowe** (SQLite lokalnie):
    ```bash
-   npm run prisma:migrate   # zastosuje przygotowane migracje (tworzy bazę prisma/dev.db)
-   npm run db:seed          # uzupełni przykładowe kategorie i części
-   ```
+ npm run prisma:migrate   # zastosuje przygotowane migracje (tworzy bazę prisma/dev.db)
+  npm run db:seed          # uzupełni przykładowe kategorie i części
+  ```
+
+   Seed tworzy również konto administratora `admin@magazyn.local` z hasłem `Admin123!`. Wartości można nadpisać zmiennymi `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` przed uruchomieniem seeda.
 
 ## Uruchomienie
 - **Backend (API)**
@@ -46,7 +48,9 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   ```
   Aby wskazać inny adres API, ustaw `VITE_API_URL`, np. `VITE_API_URL=http://localhost:4000 npm run dev`.
 
-  Przy pierwszym uruchomieniu przejdź na `/register`, utwórz konto (rola domyślnie „Serwisant”), a następnie zaloguj się na `/login`. Token JWT jest zapisywany w `localStorage` i automatycznie dołączany do dalszych zapytań.
+  Przy pierwszym uruchomieniu przejdź na `/register`, utwórz konto (rola domyślnie „Serwisant”). Konto będzie oczekiwać na zatwierdzenie przez administratora. Po akceptacji zaloguj się na `/login` – token JWT zostanie zapisany w `localStorage` i automatycznie dołączany do dalszych zapytań.
+
+  Panel administratora jest dostępny pod `/admin/users` (widoczny w menu tylko dla roli ADMIN) i pozwala zatwierdzać/dezaktywować/usuwać konta.
 
 ## Co już działa?
 - **Backend**
@@ -56,8 +60,10 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   - Seed przykładowych części (lista startowa od Alstomu) – `npm run db:seed`.
 - **Frontend**
   - Pełny flow logowania i rejestracji (formularze + walidacja) z zapisem tokenu JWT w `localStorage`.
-  - Po zalogowaniu – ochrona widoków (guard) oraz pasek nawigacji z informacjami o użytkowniku i przyciskiem „Wyloguj”.
+  - Po zalogowaniu – ochrona widoków (guard), pasek nawigacji z informacjami o użytkowniku i przyciskiem „Wyloguj”.
+  - Panel administratora (`/admin/users`) do przeglądania, zatwierdzania, dezaktywowania oraz usuwania kont (tylko rola `ADMIN`).
   - Lista części z filtrowaniem po nazwie, numerze katalogowym i kategorii oraz wizualizacją stanów minimalnych.
+  - Nowo zarejestrowani użytkownicy otrzymują rolę `TECHNICIAN`; administrator przyznaje inne role podczas zatwierdzania.
 
 ## Plan dalszych prac / testy
 - **Warstwa danych**: dodać zapisy ruchów magazynowych (dostawy/zużycia/korekty) z powiązaniem do użytkowników i stanów `StockLevel`.

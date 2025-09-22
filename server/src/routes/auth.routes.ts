@@ -10,7 +10,6 @@ const router = Router();
 const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8, 'Hasło powinno mieć co najmniej 8 znaków'),
-  role: z.nativeEnum(UserRole).optional(),
 });
 
 const loginSchema = z.object({
@@ -22,27 +21,20 @@ router.post('/register', async (req, res, next) => {
   try {
     const payload = registerSchema.parse(req.body);
 
-    const passwordHash = await hashPassword(payload.password);
+  const passwordHash = await hashPassword(payload.password);
 
-    const user = await prisma.user.create({
-      data: {
-        email: payload.email,
-        passwordHash,
-        role: payload.role ?? UserRole.TECHNICIAN,
-      },
-    });
+  await prisma.user.create({
+    data: {
+      email: payload.email,
+      passwordHash,
+      role: UserRole.TECHNICIAN,
+      isActive: false,
+    },
+  });
 
-    const token = signAccessToken(user);
-
-    return res.status(201).json({
-      user: {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-      },
-      accessToken: token,
-    });
+  return res.status(201).json({
+    message: 'Konto zostało utworzone i oczekuje na zatwierdzenie przez administratora.',
+  });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Nieprawidłowe dane', details: error.flatten() });
@@ -66,7 +58,9 @@ router.post('/login', async (req, res, next) => {
     }
 
     if (!user.isActive) {
-      return res.status(403).json({ message: 'Konto użytkownika jest zablokowane' });
+      return res
+        .status(403)
+        .json({ message: 'Konto oczekuje na zatwierdzenie przez administratora.' });
     }
 
     const isValidPassword = await verifyPassword(payload.password, user.passwordHash);

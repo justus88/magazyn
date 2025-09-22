@@ -34,6 +34,22 @@
   flex-direction: column;
 }
 
+.top-nav__menu {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.top-nav__link {
+  color: #e2e8f0;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.top-nav__link:hover {
+  color: #fff;
+}
+
 .top-nav__title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -77,6 +93,12 @@
     align-items: flex-start;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
+  }
+
+  .top-nav__menu {
+    width: 100%;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
 
   .top-nav__user {

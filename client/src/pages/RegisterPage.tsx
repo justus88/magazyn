@@ -2,29 +2,23 @@ import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../context/AuthContext';
-import type { AuthCredentials, AuthUser } from '../types/auth';
+import type { AuthCredentials } from '../types/auth';
 import './AuthPages.css';
-
-const roleOptions: Array<{ value: AuthUser['role']; label: string }> = [
-  { value: 'TECHNICIAN', label: 'Serwisant' },
-  { value: 'MANAGER', label: 'Magazynier' },
-  { value: 'ADMIN', label: 'Administrator' },
-];
 
 export function RegisterPage() {
   const { register } = useAuthContext();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState<AuthCredentials & { role: AuthUser['role']; confirmPassword: string }>(
+  const [form, setForm] = useState<AuthCredentials & { confirmPassword: string }>(
     {
       email: '',
       password: '',
       confirmPassword: '',
-      role: 'TECHNICIAN',
     },
   );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -38,8 +32,11 @@ export function RegisterPage() {
     }
 
     try {
-      await register({ email: form.email, password: form.password, role: form.role });
-      navigate('/');
+      const response = await register({ email: form.email, password: form.password });
+      setSuccessMessage(response.message ?? 'Konto zostało utworzone.');
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nieoczekiwany błąd');
     } finally {
@@ -51,7 +48,9 @@ export function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <h1>Rejestracja</h1>
-        <p className="auth-card__subtitle">Utwórz konto, aby korzystać z magazynu.</p>
+        <p className="auth-card__subtitle">
+          Utwórz konto serwisowe. Po zatwierdzeniu przez administratora otrzymasz dostęp do magazynu.
+        </p>
 
         <form className="auth-form" onSubmit={handleSubmit}>
           <label className="auth-form__field">
@@ -92,21 +91,8 @@ export function RegisterPage() {
             />
           </label>
 
-          <label className="auth-form__field">
-            <span>Rola użytkownika</span>
-            <select
-              value={form.role}
-              onChange={(event) => setForm((state) => ({ ...state, role: event.target.value as AuthUser['role'] }))}
-            >
-              {roleOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
-
           {error && <div className="auth-form__error">{error}</div>}
+          {successMessage && <div className="auth-form__success">{successMessage}</div>}
 
           <button type="submit" className="auth-form__submit" disabled={isSubmitting}>
             {isSubmitting ? 'Tworzenie konta…' : 'Zarejestruj się'}

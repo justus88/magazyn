@@ -1,9 +1,10 @@
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthContext } from './context/AuthContext';
 import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
 import './App.css';
 
 function AuthenticatedHeader() {
@@ -18,6 +19,16 @@ function AuthenticatedHeader() {
       <div className="top-nav__brand">
         <span className="top-nav__title">Magazyn serwisowy</span>
       </div>
+      <nav className="top-nav__menu">
+        <Link to="/" className="top-nav__link">
+          Stany magazynu
+        </Link>
+        {user.role === 'ADMIN' ? (
+          <Link to="/admin/users" className="top-nav__link">
+            Panel administratora
+          </Link>
+        ) : null}
+      </nav>
       <div className="top-nav__user">
         <div>
           <span className="top-nav__user-name">{user.email}</span>
@@ -44,6 +55,10 @@ export default function App() {
 
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<InventoryPage />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN']} />}>
+            <Route path="/admin/users" element={<AdminUsersPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to={isAuthenticated ? '/' : '/login'} replace />} />
