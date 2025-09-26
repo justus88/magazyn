@@ -8,6 +8,7 @@ import {
   updatePart,
   type Part,
 } from '../api/parts';
+import { downloadInventoryReport } from '../api/reports';
 import { useAuthContext } from '../context/AuthContext';
 import './PartsPage.css';
 
@@ -52,7 +53,7 @@ function parseNumber(value: string): number | null {
 
 export function PartsPage() {
   const { token, user } = useAuthContext();
-  const canModify = user?.role === 'ADMIN' || user?.role === 'MANAGER';
+  const canModify = user?.role === 'ADMIN' || user?.role === 'SERWISANT';
 
   const [parts, setParts] = useState<Part[]>([]);
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -63,6 +64,7 @@ export function PartsPage() {
   const [form, setForm] = useState<PartFormState>(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingForm, setEditingForm] = useState<PartFormState>(emptyForm);
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
 
   async function loadData() {
     if (!token) {
@@ -147,8 +149,36 @@ export function PartsPage() {
       setParts((prev) => [response.part, ...prev]);
       resetForm();
       setError(null);
+      loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Nie udało się dodać części');
+    }
+  }
+
+  async function handleDownloadReport() {
+    if (!token) {
+      return;
+    }
+
+    setIsDownloadingReport(true);
+    setError(null);
+
+    try {
+      const blob = await downloadInventoryReport(token);
+      const url = window.URL.createObjectURL(blob);
+      const timestamp = new Date();
+      const formattedDate = timestamp.toISOString().slice(0, 16).replace('T', '-').replace(':', '');
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `stan-magazynowy-${formattedDate}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się pobrać raportu');
+    } finally {
+      setIsDownloadingReport(false);
     }
   }
 
@@ -310,9 +340,19 @@ export function PartsPage() {
             ))}
           </select>
         </label>
-        <button type="button" className="parts-page__refresh" onClick={loadData} disabled={isLoading}>
-          Odśwież
-        </button>
+        <div className="parts-page__actions-row">
+          <button type="button" className="parts-page__refresh" onClick={loadData} disabled={isLoading}>
+            Odśwież
+          </button>
+          <button
+            type="button"
+            className="parts-page__download"
+            onClick={handleDownloadReport}
+            disabled={!token || isDownloadingReport}
+          >
+            {isDownloadingReport ? 'Generowanie…' : 'Eksport PDF'}
+          </button>
+        </div>
       </section>
 
       {error && <div className="parts-page__error">{error}</div>}

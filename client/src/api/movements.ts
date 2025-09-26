@@ -86,3 +86,13 @@ export async function updateMovementNotes(
     body: payload,
   });
 }
+
+export async function revertMovement(token: string, movementId: string) {
+  return apiRequest<{ message: string; partCurrentQuantity: number }>(
+    `/api/movements/${movementId}/revert`,
+    {
+      method: 'POST',
+      token,
+    },
+  );
+}

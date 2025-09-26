@@ -1,5 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
-import { deleteUser, fetchUsers, updateUserApproval, type AdminUser } from '../api/admin';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import {
+  createUser,
+  deleteUser,
+  fetchRegistrationSettings,
+  fetchUsers,
+  updateRegistrationSettings,
+  updateUserApproval,
+  type AdminUser,
+  type CreateUserPayload,
+} from '../api/admin';
 import { useAuthContext } from '../context/AuthContext';
 import './AdminUsersPage.css';
 
@@ -7,12 +16,29 @@ type FilterStatus = 'pending' | 'active' | 'all';
 
 type LoadState = 'idle' | 'loading' | 'error';
 
+const assignableRoles: AdminUser['role'][] = ['SERWISANT', 'ADMIN'];
+
 export function AdminUsersPage() {
   const { token } = useAuthContext();
   const [status, setStatus] = useState<FilterStatus>('pending');
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [state, setState] = useState<LoadState>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [registrationAllowed, setRegistrationAllowed] = useState<boolean | null>(null);
+  const [isLoadingRegistration, setIsLoadingRegistration] = useState(false);
+  const [isUpdatingRegistration, setIsUpdatingRegistration] = useState(false);
+  const [registrationMessage, setRegistrationMessage] = useState<string | null>(null);
+  const [registrationError, setRegistrationError] = useState<string | null>(null);
+  const [newUserForm, setNewUserForm] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    role: 'SERWISANT' as AdminUser['role'],
+    isActive: true,
+  });
+  const [createUserError, setCreateUserError] = useState<string | null>(null);
+  const [createUserMessage, setCreateUserMessage] = useState<string | null>(null);
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -47,7 +73,142 @@ export function AdminUsersPage() {
     };
   }, [status, token]);
 
+  useEffect(() => {
+    if (!token) {
+      setRegistrationAllowed(null);
+      return;
+    }
+
+    const authToken = token;
+    let isMounted = true;
+
+    async function loadSettings() {
+      setIsLoadingRegistration(true);
+      setRegistrationError(null);
+      try {
+        const response = await fetchRegistrationSettings(authToken);
+        if (isMounted) {
+          setRegistrationAllowed(response.allowSelfRegistration);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setRegistrationError(
+            err instanceof Error
+              ? err.message
+              : 'Nie udało się pobrać ustawień rejestracji',
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingRegistration(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [token]);
+
   const pendingCount = useMemo(() => users.filter((user) => !user.isActive).length, [users]);
+
+  const isRegistrationKnown = registrationAllowed !== null;
+  const registrationButtonDisabled =
+    !isRegistrationKnown || isUpdatingRegistration || isLoadingRegistration;
+  const registrationButtonLabel = isUpdatingRegistration
+    ? 'Aktualizowanie…'
+    : !isRegistrationKnown || isLoadingRegistration
+      ? 'Ładowanie…'
+      : registrationAllowed
+        ? 'Wyłącz rejestrację'
+        : 'Włącz rejestrację';
+  const registrationBadge = !isRegistrationKnown ? (
+    <span className="badge badge--pending">ładowanie…</span>
+  ) : registrationAllowed ? (
+    <span className="badge badge--success">włączona</span>
+  ) : (
+    <span className="badge badge--muted">wyłączona</span>
+  );
+
+  async function handleToggleRegistration() {
+    if (!token || registrationAllowed === null) {
+      return;
+    }
+
+    const authToken = token;
+    setIsUpdatingRegistration(true);
+    setRegistrationError(null);
+    setRegistrationMessage(null);
+    try {
+      const response = await updateRegistrationSettings(authToken, !registrationAllowed);
+      setRegistrationAllowed(response.allowSelfRegistration);
+      setRegistrationMessage(response.message ?? null);
+    } catch (err) {
+      setRegistrationError(
+        err instanceof Error
+          ? err.message
+          : 'Nie udało się zaktualizować ustawień rejestracji',
+      );
+    } finally {
+      setIsUpdatingRegistration(false);
+    }
+  }
+
+  async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    if (newUserForm.password !== newUserForm.confirmPassword) {
+      setCreateUserError('Hasła muszą być takie same.');
+      setCreateUserMessage(null);
+      return;
+    }
+
+    const authToken = token;
+    setIsCreatingUser(true);
+    setCreateUserError(null);
+    setCreateUserMessage(null);
+
+    const payload: CreateUserPayload = {
+      email: newUserForm.email,
+      password: newUserForm.password,
+      role: newUserForm.role,
+      isActive: newUserForm.isActive,
+    };
+
+    try {
+      const response = await createUser(authToken, payload);
+      setCreateUserMessage(response.message);
+      setNewUserForm({
+        email: '',
+        password: '',
+        confirmPassword: '',
+        role: 'SERWISANT' as AdminUser['role'],
+        isActive: true,
+      });
+      setUsers((prev) => {
+        const shouldInclude =
+          status === 'all' ||
+          (status === 'pending' && !response.user.isActive) ||
+          (status === 'active' && response.user.isActive);
+        if (!shouldInclude) {
+          return prev;
+        }
+        return [response.user, ...prev];
+      });
+    } catch (err) {
+      setCreateUserError(
+        err instanceof Error ? err.message : 'Nie udało się utworzyć użytkownika',
+      );
+    } finally {
+      setIsCreatingUser(false);
+    }
+  }
 
   async function handleApprove(userId: string, approve: boolean) {
     if (!token) {
@@ -86,7 +247,7 @@ export function AdminUsersPage() {
       <header className="admin-page__header">
         <div>
           <h1>Zarządzanie użytkownikami</h1>
-          <p>Zatwierdzaj nowe konta i kontroluj dostęp do magazynu.</p>
+          <p>Zatwierdzaj konta, nadaj role i kontroluj dostęp do magazynu.</p>
         </div>
         <div className="admin-page__stats">
           <div className="stat-card">
@@ -95,6 +256,138 @@ export function AdminUsersPage() {
           </div>
         </div>
       </header>
+
+      <section className="admin-section">
+        <div className="admin-card">
+          <div className="admin-card__header">
+            <div>
+              <h2>Samodzielna rejestracja</h2>
+              <p>Zarządzaj dostępnością formularza rejestracyjnego dla nowych użytkowników.</p>
+            </div>
+            <div className="admin-card__controls">
+              {registrationBadge}
+              <button
+                type="button"
+                className="admin-card__button"
+                onClick={handleToggleRegistration}
+                disabled={registrationButtonDisabled}
+              >
+                {registrationButtonLabel}
+              </button>
+            </div>
+          </div>
+          {registrationMessage && (
+            <p className="admin-card__feedback admin-card__feedback--success">
+              {registrationMessage}
+            </p>
+          )}
+          {registrationError && (
+            <p className="admin-card__feedback admin-card__feedback--error">
+              {registrationError}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="admin-section">
+        <div className="admin-card">
+          <div className="admin-card__header admin-card__header--stacked">
+            <div>
+              <h2>Dodaj nowe konto</h2>
+              <p>Administrator tworzy konto, nadaje rolę i decyduje o natychmiastowej aktywacji.</p>
+            </div>
+          </div>
+          <form className="admin-form" onSubmit={handleCreateUser}>
+            <div className="admin-form__grid">
+              <label className="admin-form__field">
+                <span>E-mail</span>
+                <input
+                  type="email"
+                  value={newUserForm.email}
+                  onChange={(event) =>
+                    setNewUserForm((prev) => ({ ...prev, email: event.target.value }))
+                  }
+                  required
+                  placeholder="uzytkownik@firma.pl"
+                  autoComplete="email"
+                />
+              </label>
+              <label className="admin-form__field">
+                <span>Rola</span>
+                <select
+                  value={newUserForm.role}
+                  onChange={(event) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      role: event.target.value as AdminUser['role'],
+                    }))
+                  }
+                >
+                  {assignableRoles.map((role) => (
+                    <option key={role} value={role}>
+                      {role.toLowerCase()}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="admin-form__field">
+                <span>Hasło początkowe</span>
+                <input
+                  type="password"
+                  value={newUserForm.password}
+                  onChange={(event) =>
+                    setNewUserForm((prev) => ({ ...prev, password: event.target.value }))
+                  }
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="admin-form__field">
+                <span>Powtórz hasło</span>
+                <input
+                  type="password"
+                  value={newUserForm.confirmPassword}
+                  onChange={(event) =>
+                    setNewUserForm((prev) => ({
+                      ...prev,
+                      confirmPassword: event.target.value,
+                    }))
+                  }
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </label>
+              <label className="admin-form__checkbox">
+                <input
+                  type="checkbox"
+                  checked={newUserForm.isActive}
+                  onChange={(event) =>
+                    setNewUserForm((prev) => ({ ...prev, isActive: event.target.checked }))
+                  }
+                />
+                <span>Aktywuj konto od razu</span>
+              </label>
+            </div>
+            {createUserError && (
+              <p className="admin-card__feedback admin-card__feedback--error">{createUserError}</p>
+            )}
+            {createUserMessage && (
+              <p className="admin-card__feedback admin-card__feedback--success">
+                {createUserMessage}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="admin-card__button admin-card__button--primary"
+              disabled={isCreatingUser}
+            >
+              {isCreatingUser ? 'Tworzenie konta…' : 'Utwórz konto'}
+            </button>
+          </form>
+        </div>
+      </section>
 
       <section className="admin-page__filters">
         <label className="field">
@@ -136,7 +429,7 @@ export function AdminUsersPage() {
                   <span className="badge badge--pending">oczekujące</span>
                 )}
               </span>
-             <span className="admin-table__actions" data-label="Akcje">
+              <span className="admin-table__actions" data-label="Akcje">
                 {user.isActive ? (
                   <button
                     type="button"

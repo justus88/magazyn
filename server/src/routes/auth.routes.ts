@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { signAccessToken } from '../utils/jwt';
+import { getSystemSettings } from '../services/systemSettings';
 
 const router = Router();
 
@@ -21,20 +22,25 @@ router.post('/register', async (req, res, next) => {
   try {
     const payload = registerSchema.parse(req.body);
 
-  const passwordHash = await hashPassword(payload.password);
+    const settings = await getSystemSettings();
+    if (!settings.allowSelfRegistration) {
+      return res.status(403).json({ message: 'Rejestracja jest obecnie wyłączona.' });
+    }
 
-  await prisma.user.create({
-    data: {
-      email: payload.email,
-      passwordHash,
-      role: UserRole.TECHNICIAN,
-      isActive: false,
-    },
-  });
+    const passwordHash = await hashPassword(payload.password);
 
-  return res.status(201).json({
-    message: 'Konto zostało utworzone i oczekuje na zatwierdzenie przez administratora.',
-  });
+    await prisma.user.create({
+      data: {
+        email: payload.email,
+        passwordHash,
+        role: UserRole.SERWISANT,
+        isActive: false,
+      },
+    });
+
+    return res.status(201).json({
+      message: 'Konto zostało utworzone i oczekuje na zatwierdzenie przez administratora.',
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({ message: 'Nieprawidłowe dane', details: error.flatten() });

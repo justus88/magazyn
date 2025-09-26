@@ -278,7 +278,7 @@ export function ImportsPage() {
 
         const filteredExtra = prev.extraInSystem.filter(
           (entry) =>
-            entry.catalogNumber !== originalCatalogNumber &&
+            entry.catalogNumber !== payload.part.catalogNumber &&
             entry.catalogNumber !== updatedPart.catalogNumber,
         );
 

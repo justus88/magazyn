@@ -172,7 +172,7 @@ router.get('/', authenticate, async (req, res, next) => {
 router.post(
   '/',
   authenticate,
-  authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.TECHNICIAN),
+  authorize(UserRole.ADMIN, UserRole.SERWISANT),
   async (req, res, next) => {
     try {
       const payload = createMovementSchema.parse(req.body);
@@ -186,8 +186,17 @@ router.post(
       }
 
       const result = await prisma.$transaction(async (tx) => {
-        const part = await tx.part.findUnique({ where: { id: payload.partId } });
-        if (!part) {
+        const part = await tx.part.findUnique({
+          where: { id: payload.partId },
+          select: {
+            id: true,
+            unit: true,
+            currentQuantity: true,
+            isDeleted: true,
+          },
+        });
+
+        if (!part || part.isDeleted) {
           throw new Error('PART_NOT_FOUND');
         }
 
@@ -299,10 +308,112 @@ router.post(
   },
 );
 
+router.post(
+  '/:id/revert',
+  authenticate,
+  authorize(UserRole.ADMIN),
+  async (req, res, next) => {
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        const movement = await tx.stockMovement.findUnique({
+          where: { id: req.params.id },
+          include: {
+            part: {
+              select: {
+                id: true,
+                unit: true,
+                currentQuantity: true,
+                isDeleted: true,
+              },
+            },
+          },
+        });
+
+        if (!movement || !movement.part) {
+          throw new Error('MOVEMENT_NOT_FOUND');
+        }
+
+        const shouldRestorePart = movement.part.isDeleted;
+
+        const currentQuantity = new Prisma.Decimal(movement.part.currentQuantity);
+        const movementQuantity = new Prisma.Decimal(movement.quantity);
+
+        let newQuantity = currentQuantity;
+
+        switch (movement.movementType) {
+          case StockMovementType.DELIVERY:
+            newQuantity = currentQuantity.minus(movementQuantity);
+            break;
+          case StockMovementType.USAGE:
+            newQuantity = currentQuantity.plus(movementQuantity);
+            break;
+          case StockMovementType.ADJUSTMENT:
+            newQuantity = currentQuantity.minus(movementQuantity);
+            break;
+          default:
+            break;
+        }
+
+        if (newQuantity.lessThan(0)) {
+          throw new Error('QUANTITY_BELOW_ZERO');
+        }
+
+        if (requiresIntegerUnit(movement.part.unit) && !newQuantity.isInteger()) {
+          throw new Error('INTEGER_REQUIRED');
+        }
+
+        await tx.stockMovement.delete({ where: { id: movement.id } });
+
+        const updateData: Prisma.PartUpdateInput = { currentQuantity: newQuantity };
+        if (shouldRestorePart && newQuantity.greaterThanOrEqualTo(0)) {
+          updateData.isDeleted = false;
+        }
+
+        const updatedPart = await tx.part.update({
+          where: { id: movement.part.id },
+          data: updateData,
+          select: { id: true, currentQuantity: true },
+        });
+
+        return updatedPart;
+      });
+
+      return res.json({
+        message: 'Ruch został cofnięty.',
+        partCurrentQuantity: Number(result.currentQuantity),
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        return res.status(404).json({ message: 'Ruch nie istnieje lub został już cofnięty.' });
+      }
+
+      if (error instanceof Error) {
+        if (error.message === 'MOVEMENT_NOT_FOUND') {
+          return res.status(404).json({ message: 'Ruch nie został znaleziony.' });
+        }
+
+        if (error.message === 'QUANTITY_BELOW_ZERO') {
+          return res
+            .status(400)
+            .json({ message: 'Cofnięcie ruchu spowodowałoby ujemny stan magazynowy.' });
+        }
+
+        if (error.message === 'INTEGER_REQUIRED') {
+          return res
+            .status(400)
+            .json({ message: 'Dla jednostki "szt" wynikowa ilość musi być liczbą całkowitą.' });
+        }
+      }
+
+      return next(error);
+    }
+  },
+);
+
 router.patch(
   '/:id/notes',
   authenticate,
-  authorize(UserRole.ADMIN, UserRole.MANAGER, UserRole.TECHNICIAN),
+  authorize(UserRole.ADMIN, UserRole.SERWISANT),
   async (req, res, next) => {
     try {
       const payload = updateMovementNotesSchema.parse(req.body);

@@ -4,11 +4,12 @@ import { fetchParts } from '../api/parts';
 import {
   createMovement,
   fetchMovements,
+  revertMovement,
   type Movement,
   type MovementType,
+  updateMovementNotes,
 } from '../api/movements';
 import { useAuthContext } from '../context/AuthContext';
-import { updateMovementNotes } from '../api/movements';
 import './MovementsPage.css';
 
 const INTEGER_UNITS = new Set(['szt', 'szt.', 'pcs', 'pc']);
@@ -55,13 +56,16 @@ export function MovementsPage() {
   const [editingMovementId, setEditingMovementId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
   const [isSavingNote, setIsSavingNote] = useState(false);
+  const [revertingMovementId, setRevertingMovementId] = useState<string | null>(null);
 
   const selectedPart = useMemo(
     () => parts.find((part) => part.id === form.partId) ?? null,
     [parts, form.partId],
   );
   const requiresInteger = usesIntegerUnit(selectedPart?.unit);
-  const canEditNotes = user ? ['ADMIN', 'MANAGER', 'TECHNICIAN'].includes(user.role) : false;
+  const canEditNotes = user ? ['ADMIN', 'SERWISANT'].includes(user.role) : false;
+  const canRevertMovements = user?.role === 'ADMIN';
+  const showActions = canEditNotes || canRevertMovements;
   const canSubmit = useMemo(() => {
     return form.partId && form.quantity.trim();
   }, [form.partId, form.quantity]);
@@ -173,6 +177,34 @@ export function MovementsPage() {
       setNoteError(err instanceof Error ? err.message : 'Nie udało się zapisać notatek.');
     } finally {
       setIsSavingNote(false);
+    }
+  }
+
+  async function handleRevertMovement(movementId: string) {
+    if (!token) {
+      setError('Brak tokenu uwierzytelniającego. Zaloguj się ponownie.');
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Czy na pewno chcesz cofnąć ten ruch? Stan magazynu zostanie zaktualizowany.',
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setError(null);
+    setRevertingMovementId(movementId);
+    try {
+      await revertMovement(token, movementId);
+      if (editingMovementId === movementId) {
+        cancelEditNotes();
+      }
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Nie udało się cofnąć ruchu.');
+    } finally {
+      setRevertingMovementId(null);
     }
   }
 
@@ -331,14 +363,20 @@ export function MovementsPage() {
       <section className="movements-page__list">
         <h2>Historia ruchów</h2>
         <div className="movements-table">
-          <div className="movements-table__row movements-table__row--head">
+          <div
+            className={
+              showActions
+                ? 'movements-table__row movements-table__row--head movements-table__row--with-actions'
+                : 'movements-table__row movements-table__row--head'
+            }
+          >
             <span>Data</span>
             <span>Typ</span>
             <span>Ilość</span>
             <span>Część</span>
             <span>Wykonał</span>
             <span>Uwagi</span>
-            {canEditNotes ? <span>Akcje</span> : null}
+            {showActions ? <span>Akcje</span> : null}
           </div>
           {isLoading ? (
             <div className="movements-table__empty">Ładowanie historii…</div>
@@ -346,7 +384,7 @@ export function MovementsPage() {
             <div className="movements-table__empty">Brak zarejestrowanych ruchów.</div>
           ) : (
             movements.map((movement) => {
-              const rowClassName = canEditNotes
+              const rowClassName = showActions
                 ? 'movements-table__row movements-table__row--with-actions'
                 : 'movements-table__row';
 
@@ -386,36 +424,50 @@ export function MovementsPage() {
                     <p>—</p>
                   )}
                 </span>
-                {canEditNotes ? (
+                {showActions ? (
                   <span data-label="Akcje" className="movements-table__actions">
-                    {editingMovementId === movement.id ? (
-                      <>
-                        <button
-                          type="button"
-                          className="movements-table__button"
-                          onClick={() => handleSaveNotes(movement.id)}
-                          disabled={isSavingNote}
-                        >
-                          {isSavingNote ? 'Zapisywanie…' : 'Zapisz'}
-                        </button>
-                        <button
-                          type="button"
-                          className="movements-table__button movements-table__button--secondary"
-                          onClick={cancelEditNotes}
-                          disabled={isSavingNote}
-                        >
-                          Anuluj
-                        </button>
-                      </>
-                    ) : (
+                    <span className="movements-table__actions-group">
+                      {canEditNotes ? (
+                        editingMovementId === movement.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="movements-table__button"
+                              onClick={() => handleSaveNotes(movement.id)}
+                              disabled={isSavingNote}
+                            >
+                              {isSavingNote ? 'Zapisywanie…' : 'Zapisz'}
+                            </button>
+                            <button
+                              type="button"
+                              className="movements-table__button movements-table__button--secondary"
+                              onClick={cancelEditNotes}
+                              disabled={isSavingNote}
+                            >
+                              Anuluj
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="movements-table__button"
+                            onClick={() => beginEditNotes(movement)}
+                          >
+                            Edytuj
+                          </button>
+                        )
+                      ) : null}
+                    </span>
+                    {canRevertMovements ? (
                       <button
                         type="button"
-                        className="movements-table__button"
-                        onClick={() => beginEditNotes(movement)}
+                        className="movements-table__button movements-table__button--danger"
+                        onClick={() => handleRevertMovement(movement.id)}
+                        disabled={revertingMovementId === movement.id || isSavingNote}
                       >
-                        Edytuj
+                        {revertingMovementId === movement.id ? 'Cofanie…' : 'Cofnij ruch'}
                       </button>
-                    )}
+                    ) : null}
                   </span>
                 ) : null}
                 </div>

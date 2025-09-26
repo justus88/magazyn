@@ -3,7 +3,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthContext } from './context/AuthContext';
 import { InventoryPage } from './pages/InventoryPage';
 import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { CategoriesPage } from './pages/CategoriesPage';
 import { PartsPage } from './pages/PartsPage';
@@ -27,17 +26,17 @@ function AuthenticatedHeader() {
         <Link to="/" className="top-nav__link">
           Stany magazynu
         </Link>
-        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+        {(user.role === 'ADMIN' || user.role === 'SERWISANT') && (
           <Link to="/categories" className="top-nav__link">
             Kategorie
           </Link>
         )}
-        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+        {(user.role === 'ADMIN' || user.role === 'SERWISANT') && (
           <Link to="/parts" className="top-nav__link">
             Części
           </Link>
         )}
-        {(user.role === 'ADMIN' || user.role === 'MANAGER') && (
+        {(user.role === 'ADMIN' || user.role === 'SERWISANT') && (
           <Link to="/imports" className="top-nav__link">
             Import SAP
           </Link>
@@ -73,19 +72,17 @@ export default function App() {
       <main className={isAuthenticated ? 'app-main app-main--authenticated' : 'app-main'}>
         <Routes>
           <Route path="/login" element={isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />} />
-          <Route path="/register" element={isAuthenticated ? <Navigate to="/" replace /> : <RegisterPage />} />
-
           <Route element={<ProtectedRoute />}>
             <Route path="/" element={<InventoryPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SERWISANT']} />}>
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/parts" element={<PartsPage />} />
             <Route path="/imports" element={<ImportsPage />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER', 'TECHNICIAN']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['ADMIN', 'SERWISANT']} />}>
             <Route path="/movements" element={<MovementsPage />} />
           </Route>
 

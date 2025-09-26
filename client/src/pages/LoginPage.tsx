@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../context/AuthContext';
 import type { AuthCredentials } from '../types/auth';
 import './AuthPages.css';
@@ -68,7 +68,7 @@ export function LoginPage() {
         </form>
 
         <p className="auth-card__footer">
-          Nie masz konta? <Link to="/register">Zarejestruj się</Link>
+          Nie masz konta? Skontaktuj się z administratorem, aby je utworzyć.
         </p>
       </div>
     </div>

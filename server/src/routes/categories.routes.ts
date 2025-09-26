@@ -107,7 +107,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.post('/', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     const payload = createCategorySchema.parse(req.body);
     const category = await prisma.category.create({
@@ -128,7 +128,7 @@ router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), asyn
   }
 });
 
-router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.patch('/:id', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     const payload = updateCategorySchema.parse(req.body);
 
@@ -156,11 +156,11 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
   }
 });
 
-router.delete('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.delete('/:id', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     const categoryId = req.params.id;
 
-    const partsCount = await prisma.part.count({ where: { categoryId } });
+    const partsCount = await prisma.part.count({ where: { categoryId, isDeleted: false } });
     if (partsCount > 0) {
       return res
         .status(400)

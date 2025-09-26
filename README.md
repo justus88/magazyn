@@ -60,6 +60,7 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   - CRUD dla kategorii (`/api/categories`) i części (`/api/parts`) z walidacją Zod oraz obsługą kolizji danych w bazie.
   - Seed przykładowych części (lista startowa od Alstomu) – `npm run db:seed`.
   - Walidacja ilości: dla jednostek `szt` (oraz wariantów) ilości magazynowe i ruchy muszą być liczbami całkowitymi.
+  - Raport PDF dla stanów magazynowych (`GET /api/reports/inventory`) z wyróżnieniem pozycji poniżej minimum.
   - Endpoint `/api/imports/alstom` przyjmuje plik XLS z Alstomu (pole formularza `file`) i porównuje pozycje z systemem – analizuje kolumny `Materiał`, `Krótki tekst mat.`, `Podst. jedn. miary`, `Nieogranicz.wykorz.`.
 - **Frontend**
   - Pełny flow logowania i rejestracji (formularze + walidacja) z zapisem tokenu JWT w `localStorage`.
@@ -67,6 +68,7 @@ Dwuczęściowa aplikacja (API + frontend) do zarządzania magazynem części ser
   - Panel administratora (`/admin/users`) do przeglądania, zatwierdzania, dezaktywowania oraz usuwania kont (tylko rola `ADMIN`).
   - Panel kategorii (`/categories`) dla ról `ADMIN` i `MANAGER` – tworzenie, edycja i usuwanie kategorii wraz z podglądem liczby przypisanych części.
   - Lista części z filtrowaniem po nazwie, numerze katalogowym i kategorii oraz wizualizacją stanów minimalnych.
+  - Eksport aktualnej listy części do raportu PDF (przycisk na liście części dla zalogowanych użytkowników).
   - Nowo zarejestrowani użytkownicy otrzymują rolę `TECHNICIAN`; administrator przyznaje inne role podczas zatwierdzania.
 
 ## Plan dalszych prac / testy

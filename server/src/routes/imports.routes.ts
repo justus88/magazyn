@@ -76,7 +76,7 @@ const applyAdjustmentsSchema = z.object({
 router.post(
   '/alstom',
   authenticate,
-  authorize(UserRole.ADMIN, UserRole.MANAGER),
+  authorize(UserRole.ADMIN, UserRole.SERWISANT),
   upload.single('file'),
   async (req, res, next) => {
     try {
@@ -151,6 +151,7 @@ router.post(
       );
 
       const systemParts = await prisma.part.findMany({
+        where: { isDeleted: false },
         select: {
           id: true,
           catalogNumber: true,
@@ -264,7 +265,7 @@ router.post(
 router.post(
   '/alstom/apply',
   authenticate,
-  authorize(UserRole.ADMIN, UserRole.MANAGER),
+  authorize(UserRole.ADMIN, UserRole.SERWISANT),
   async (req, res, next) => {
     try {
       const { adjustments } = applyAdjustmentsSchema.parse(req.body);
@@ -309,10 +310,11 @@ router.post(
               name: true,
               unit: true,
               currentQuantity: true,
+              isDeleted: true,
             },
           });
 
-          if (!part) {
+          if (!part || part.isDeleted) {
             failed.push({ partId: null, catalogNumber: item.catalogNumber, name: null, reason: 'Część nie istnieje.' });
             continue;
           }

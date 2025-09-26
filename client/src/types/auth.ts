@@ -1,7 +1,7 @@
 export interface AuthUser {
   id: string;
   email: string;
-  role: 'ADMIN' | 'MANAGER' | 'TECHNICIAN' | 'VIEWER';
+  role: 'ADMIN' | 'SERWISANT';
   isActive: boolean;
 }
 
@@ -13,8 +13,4 @@ export interface AuthResponse {
 export interface AuthCredentials {
   email: string;
   password: string;
-}
-
-export interface RegisterResponse {
-  message: string;
 }

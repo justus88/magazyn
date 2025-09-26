@@ -3,7 +3,7 @@ import { apiRequest } from './client';
 export interface AdminUser {
   id: string;
   email: string;
-  role: 'ADMIN' | 'MANAGER' | 'TECHNICIAN' | 'VIEWER';
+  role: 'ADMIN' | 'SERWISANT';
   isActive: boolean;
   createdAt: string;
   approvedAt: string | null;
@@ -12,6 +12,23 @@ export interface AdminUser {
 
 interface AdminUsersResponse {
   items: AdminUser[];
+}
+
+export interface CreateUserPayload {
+  email: string;
+  password: string;
+  role: AdminUser['role'];
+  isActive?: boolean;
+}
+
+interface CreateUserResponse {
+  user: AdminUser;
+  message: string;
+}
+
+interface RegistrationSettingsResponse {
+  allowSelfRegistration: boolean;
+  message?: string;
 }
 
 export async function fetchUsers(token: string, status: 'pending' | 'active' | 'all' = 'pending') {
@@ -38,4 +55,29 @@ export async function deleteUser(token: string, userId: string) {
     method: 'DELETE',
     token,
   });
+}
+
+export async function createUser(token: string, payload: CreateUserPayload) {
+  return apiRequest<CreateUserResponse, CreateUserPayload>('/api/admin/users', {
+    method: 'POST',
+    token,
+    body: payload,
+  });
+}
+
+export async function fetchRegistrationSettings(token: string) {
+  return apiRequest<RegistrationSettingsResponse>('/api/admin/settings/registration', {
+    token,
+  });
+}
+
+export async function updateRegistrationSettings(token: string, allowSelfRegistration: boolean) {
+  return apiRequest<RegistrationSettingsResponse, { allowSelfRegistration: boolean }>(
+    '/api/admin/settings/registration',
+    {
+      method: 'PATCH',
+      token,
+      body: { allowSelfRegistration },
+    },
+  );
 }

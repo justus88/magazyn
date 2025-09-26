@@ -61,6 +61,14 @@ async function main() {
 
   console.log(`Seed admin account ready: ${adminUser.email}`);
 
+  await prisma.systemSetting.upsert({
+    where: { id: 1 },
+    update: { allowSelfRegistration: false },
+    create: { id: 1, allowSelfRegistration: false },
+  });
+
+  console.log('Self-registration disabled by default.');
+
   const categoryMap = new Map();
 
   for (const category of categories) {

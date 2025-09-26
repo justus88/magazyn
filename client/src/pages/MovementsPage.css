@@ -137,7 +137,15 @@
 .movements-table__actions {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.movements-table__actions-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .movements-table__button {
@@ -167,6 +175,15 @@
 
 .movements-table__button--secondary:hover {
   background: rgba(148, 163, 184, 0.35);
+}
+
+.movements-table__button--danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #b91c1c;
+}
+
+.movements-table__button--danger:hover {
+  background: rgba(239, 68, 68, 0.28);
 }
 
 .movements-page__note-error {

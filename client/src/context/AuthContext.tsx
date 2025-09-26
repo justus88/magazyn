@@ -1,14 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 import { apiRequest, setUnauthorizedHandler } from '../api/client';
-import type { AuthCredentials, AuthResponse, AuthUser, RegisterResponse } from '../types/auth';
+import type { AuthCredentials, AuthResponse, AuthUser } from '../types/auth';
 
 interface AuthContextValue {
   user: AuthUser | null;
   token: string | null;
   isAuthenticated: boolean;
   login: (credentials: AuthCredentials) => Promise<void>;
-  register: (payload: AuthCredentials) => Promise<RegisterResponse>;
   logout: () => void;
 }
 
@@ -84,14 +83,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     handleAuthSuccess(response);
   }, [handleAuthSuccess]);
 
-  const register = useCallback(async (payload: AuthCredentials) => {
-    const response = await apiRequest<RegisterResponse, typeof payload>('/api/auth/register', {
-      method: 'POST',
-      body: payload,
-    });
-    return response;
-  }, []);
-
   const logout = useCallback(() => {
     setUser(null);
     setToken(null);
@@ -108,10 +99,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       token,
       isAuthenticated: Boolean(user && token),
       login,
-      register,
       logout,
     }),
-    [login, logout, register, token, user],
+    [login, logout, token, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

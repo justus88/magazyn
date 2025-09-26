@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma, StockMovementType, UserRole } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../lib/prisma';
 import { authenticate, authorize } from '../middleware/auth';
@@ -57,7 +57,7 @@ router.get('/', async (req, res, next) => {
     const pageSize = Math.min(Number.parseInt((req.query.pageSize as string) ?? '25', 10) || 25, 100);
     const skip = (page - 1) * pageSize;
 
-    const where: Prisma.PartWhereInput = {};
+    const where: Prisma.PartWhereInput = { isDeleted: false };
 
     if (search) {
       where.OR = [
@@ -76,7 +76,7 @@ router.get('/', async (req, res, next) => {
       prisma.part.findMany({
         where,
         include: { category: true },
-        orderBy: { name: 'asc' },
+        orderBy: [{ createdAt: 'desc' }, { name: 'asc' }],
         skip,
         take: pageSize,
       }),
@@ -119,7 +119,7 @@ router.get('/:id', async (req, res, next) => {
       },
     });
 
-    if (!part) {
+    if (!part || part.isDeleted) {
       return res.status(404).json({ message: 'Część nie została znaleziona' });
     }
 
@@ -160,7 +160,7 @@ router.get('/:id', async (req, res, next) => {
   }
 });
 
-router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.post('/', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     const payload = createPartSchema.parse(req.body);
 
@@ -216,16 +216,16 @@ router.post('/', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), asyn
   }
 });
 
-router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.patch('/:id', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     const payload = updatePartSchema.parse(req.body);
 
     const existing = await prisma.part.findUnique({
       where: { id: req.params.id },
-      select: { unit: true },
+      select: { unit: true, isDeleted: true },
     });
 
-    if (!existing) {
+    if (!existing || existing.isDeleted) {
       return res.status(404).json({ message: 'Część nie została znaleziona' });
     }
 
@@ -288,16 +288,57 @@ router.patch('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), 
   }
 });
 
-router.delete('/:id', authenticate, authorize(UserRole.MANAGER, UserRole.ADMIN), async (req, res, next) => {
+router.delete('/:id', authenticate, authorize(UserRole.SERWISANT, UserRole.ADMIN), async (req, res, next) => {
   try {
     await prisma.$transaction(async (tx) => {
-      await tx.stockMovement.deleteMany({ where: { partId: req.params.id } });
-      await tx.stockLevel.deleteMany({ where: { partId: req.params.id } });
-      await tx.part.delete({ where: { id: req.params.id } });
+      const part = await tx.part.findUnique({
+        where: { id: req.params.id },
+        select: {
+          id: true,
+          catalogNumber: true,
+          name: true,
+          currentQuantity: true,
+          isDeleted: true,
+        },
+      });
+
+      if (!part || part.isDeleted) {
+        throw new Error('PART_NOT_FOUND');
+      }
+
+      await tx.stockLevel.deleteMany({ where: { partId: part.id } });
+
+      const currentQuantity = new Prisma.Decimal(part.currentQuantity);
+      const removalQuantity = currentQuantity.isZero() ? new Prisma.Decimal(0) : currentQuantity.mul(-1);
+      const removalQuantityNumber = Number(currentQuantity);
+
+      await tx.stockMovement.create({
+        data: {
+          partId: part.id,
+          movementType: StockMovementType.ADJUSTMENT,
+          quantity: removalQuantity,
+          movementDate: new Date(),
+          notes: `Część usunięta z systemu (${part.catalogNumber} - ${part.name}). Usunięta ilość: ${removalQuantityNumber}.`,
+          performedById: req.user?.id ?? null,
+        },
+      });
+
+      await tx.part.update({
+        where: { id: part.id },
+        data: {
+          isDeleted: true,
+          currentQuantity: new Prisma.Decimal(0),
+        },
+      });
     });
+
     return res.status(204).send();
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+      return res.status(404).json({ message: 'Część nie została znaleziona' });
+    }
+
+    if (error instanceof Error && error.message === 'PART_NOT_FOUND') {
       return res.status(404).json({ message: 'Część nie została znaleziona' });
     }
 

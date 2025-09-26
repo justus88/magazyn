@@ -26,7 +26,7 @@ export function CategoriesPage() {
   const [editingForm, setEditingForm] = useState<FormState>({ name: '', description: '' });
 
   const canModify = useMemo(() => {
-    return user?.role === 'ADMIN' || user?.role === 'MANAGER';
+    return user?.role === 'ADMIN' || user?.role === 'SERWISANT';
   }, [user]);
 
   async function loadCategories(currentSearch?: string) {

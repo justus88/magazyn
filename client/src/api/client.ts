@@ -56,6 +56,37 @@ export async function apiRequest<TResponse, TBody = unknown>(
   return (await response.json()) as TResponse;
 }
 
+export async function apiRequestBinary(
+  path: string,
+  options: { method?: HttpMethod; token?: string | null } = {},
+): Promise<Blob> {
+  const { method = 'GET', token } = options;
+
+  const headers: Record<string, string> = {};
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method,
+    headers,
+  });
+
+  if (response.status === 401) {
+    unauthorizedHandler?.();
+  }
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json');
+    const errorPayload = isJson ? await response.json().catch(() => null) : null;
+    const message = errorPayload?.message ?? `Request failed with status ${response.status}`;
+    throw new Error(message);
+  }
+
+  return response.blob();
+}
+
 export function getApiBaseUrl() {
   return API_BASE_URL;
 }
