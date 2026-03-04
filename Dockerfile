@@ -11,11 +11,13 @@ FROM php:8.3-fpm-alpine
 # System deps (runtime) + build deps (tylko do kompilacji rozszerzeń)
 RUN apk add --no-cache \
     nginx supervisor curl \
-    icu-libs libpng libzip libpq \
+    icu-libs libpng libzip libpq libjpeg-turbo freetype \
   && apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
-    icu-dev libpng-dev libzip-dev oniguruma-dev postgresql-dev \
+    icu-dev libpng-dev libzip-dev oniguruma-dev postgresql-dev libjpeg-turbo-dev freetype-dev \
+  && docker-php-ext-configure gd --with-jpeg --with-freetype \
   && docker-php-ext-install \
+    \
     pdo pdo_mysql pdo_pgsql mbstring zip intl gd opcache \
   && apk del .build-deps
 
