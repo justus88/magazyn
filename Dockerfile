@@ -38,7 +38,7 @@ COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
 # Uprawnienia dla Laravel
-RUN chown -R www-data:www-data storage bootstrap/cache
+RUN mkdir -p storage bootstrap/cache && chown -R www-data:www-data storage bootstrap/cache && chmod -R 775 storage bootstrap/cache
 
 # Nginx + Supervisor
 COPY docker/nginx.conf /etc/nginx/nginx.conf
