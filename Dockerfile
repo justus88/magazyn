@@ -9,7 +9,7 @@ RUN apk add --no-cache \
   && apk add --no-cache --virtual .build-deps \
       $PHPIZE_DEPS icu-dev libpng-dev libjpeg-turbo-dev freetype-dev \
   && docker-php-ext-configure gd --with-jpeg --with-freetype \
-  && docker-php-ext-install intl gd \
+  && docker-php-ext-install -j20 20 101 12 61 79 80 81 98 701 702 33 100 204 250 395 398 399 400nproc) intl gd \
   && apk del .build-deps
 
 # composer binary
