@@ -25,8 +25,8 @@ FROM php:8.3-fpm-alpine
 
 RUN apk add --no-cache \
     nginx supervisor curl \
-  && rm -f /etc/nginx/http.d/default.conf \\
     icu-libs libpng libjpeg-turbo freetype libzip libpq \
+  && rm -f /etc/nginx/http.d/default.conf \
   && apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
     icu-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev oniguruma-dev postgresql-dev \
