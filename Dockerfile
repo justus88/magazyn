@@ -31,7 +31,7 @@ RUN apk add --no-cache \
     $PHPIZE_DEPS \
     icu-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev oniguruma-dev postgresql-dev \
   && docker-php-ext-configure gd --with-jpeg --with-freetype \
-    pdo pdo_mysql pdo_pgsql mbstring zip intl gd opcache \
+    && docker-php-ext-install -j$(nproc) pdo pdo_mysql pdo_pgsql mbstring zip intl gd opcache \
   && apk del .build-deps
 
 RUN { \
@@ -56,4 +56,4 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 
 EXPOSE 8080
-CMD ["/usr/bin/supervisord","-c","/etc/supervisord.conf"]
+CMD ["/bin/sh","-lc","php artisan migrate --force || true; exec /usr/bin/supervisord -c /etc/supervisord.conf"]
