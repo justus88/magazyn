@@ -30,7 +30,7 @@ RUN apk add --no-cache \
     $PHPIZE_DEPS \
     icu-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev oniguruma-dev postgresql-dev \
   && docker-php-ext-configure gd --with-jpeg --with-freetype \
-  && docker-php-ext-install \
+  && docker-php-ext-install -j$(nproc) intl gd \
     pdo pdo_mysql pdo_pgsql mbstring zip intl gd opcache \
   && apk del .build-deps
 
