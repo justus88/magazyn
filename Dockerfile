@@ -16,6 +16,7 @@ RUN apk add --no-cache \
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
+RUN php -m | grep -E "^(intl|gd)  || (php -m && exit 1)
 RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader
 
 
