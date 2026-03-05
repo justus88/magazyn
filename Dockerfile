@@ -56,4 +56,4 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisord.conf
 
 EXPOSE 8080
-CMD ["/bin/sh","-lc","php artisan config:clear || true; php artisan cache:clear || true; php artisan route:clear || true; php artisan view:clear || true; php artisan migrate --force || true; exec /usr/bin/supervisord -c /etc/supervisord.conf"]
+CMD ["/bin/sh","-lc","php artisan migrate --force || true; php artisan config:clear || true; php artisan cache:clear || true; php artisan route:clear || true; php artisan view:clear || true; exec /usr/bin/supervisord -c /etc/supervisord.conf"]
