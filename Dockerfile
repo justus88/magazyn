@@ -1,26 +1,26 @@
 # ---------- 1) BUILDER (composer + wymagane ext) ----------
-FROM php:8.3-cli-alpine AS vendor
+FROM php:8.4-cli-alpine AS vendor
 
 WORKDIR /app
 
 # deps do intl/gd + composer
 RUN apk add --no-cache \
-      git unzip icu-libs libpng libjpeg-turbo freetype \
+      git unzip icu-libs libpng libjpeg-turbo freetype libzip \
   && apk add --no-cache --virtual .build-deps \
-      $PHPIZE_DEPS icu-dev libpng-dev libjpeg-turbo-dev freetype-dev \
+      $PHPIZE_DEPS icu-dev libpng-dev libjpeg-turbo-dev freetype-dev libzip-dev \
   && docker-php-ext-configure gd --with-jpeg --with-freetype \
-  && docker-php-ext-install -j$(nproc) intl gd \
+  && docker-php-ext-install -j$(nproc) intl gd zip \
   && apk del .build-deps
 
 # composer binary
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --ignore-platform-req=ext-intl --ignore-platform-req=ext-gd
+RUN composer install --no-dev --prefer-dist --no-interaction --no-progress --optimize-autoloader --ignore-platform-req=ext-intl --ignore-platform-req=ext-gd --ignore-platform-req=ext-zip
 
 
 # ---------- 2) RUNTIME ----------
-FROM php:8.3-fpm-alpine
+FROM php:8.4-fpm-alpine
 
 RUN apk add --no-cache \
     nginx supervisor curl \
