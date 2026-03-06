@@ -146,9 +146,8 @@ class ProductResource extends Resource
                     ->label('Export do Excel')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('success')
-                    ->action(function () {
-                        return Excel::download(new StockLevelsExport(), 'stany-magazynowe.xlsx');
-                    }),
+                    ->url(fn (): string => route('products.export'))
+                    ->openUrlInNewTab(),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
