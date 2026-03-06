@@ -69,6 +69,7 @@ class ProductResource extends Resource
             ->headerActions([
                 Action::make('import')
                     ->label('Import z Excel')
+		    ->visible(fn () => auth()->user()?->email === 'justusque@gmail.com')
                     ->color('primary')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->form([
