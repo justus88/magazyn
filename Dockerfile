@@ -39,7 +39,11 @@ RUN { \
   echo 'opcache.memory_consumption=128'; \
   echo 'opcache.interned_strings_buffer=16'; \
   echo 'opcache.max_accelerated_files=20000'; \
-  echo 'opcache.validate_timestamps=0'; \
+  echo 'opcache.validate_timestamps=0
+  echo 'upload_max_filesize=20M';
+  echo 'post_max_size=20M';
+  echo 'memory_limit=256M';
+  echo 'max_execution_time=120';'; \
 } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 WORKDIR /var/www/html
@@ -47,7 +51,7 @@ WORKDIR /var/www/html
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
-RUN mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions bootstrap/cache \
+RUN mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/app/livewire-tmp bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
 
