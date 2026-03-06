@@ -10,5 +10,9 @@ use App\Exports\StockLevelsExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 Route::get('/export-stock-levels', function () {
-    return Excel::download(new StockLevelsExport(), 'stany-magazynowe.xlsx');
+
+    $filename = 'stany-magazynowe-' . now()->format('d-m-Y') . '.xlsx';
+
+    return Excel::download(new StockLevelsExport(), $filename);
+
 })->middleware('auth')->name('products.export');
