@@ -39,11 +39,11 @@ RUN { \
   echo 'opcache.memory_consumption=128'; \
   echo 'opcache.interned_strings_buffer=16'; \
   echo 'opcache.max_accelerated_files=20000'; \
-  echo 'opcache.validate_timestamps=0
-  echo 'upload_max_filesize=20M';
-  echo 'post_max_size=20M';
-  echo 'memory_limit=256M';
-  echo 'max_execution_time=120';'; \
+  echo 'opcache.validate_timestamps=0'; \
+  echo 'upload_max_filesize=20M'; \
+  echo 'post_max_size=20M'; \
+  echo 'memory_limit=256M'; \
+  echo 'max_execution_time=120'; \
 } > /usr/local/etc/php/conf.d/opcache-recommended.ini
 
 WORKDIR /var/www/html
