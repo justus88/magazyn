@@ -2,19 +2,20 @@
 
 namespace App\Filament\Resources;
 
+use App\Exports\StockLevelsExport;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Imports\ProductsImport;
 use App\Models\Product;
 use Filament\Forms;
-use Filament\Forms\Form;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Table;
 use Filament\Tables\Actions\Action;
+use Filament\Tables\Table;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
@@ -69,7 +70,7 @@ class ProductResource extends Resource
             ->headerActions([
                 Action::make('import')
                     ->label('Import z Excel')
-		    ->visible(fn () => auth()->user()?->email === 'justusque@gmail.com')
+                    ->visible(fn () => auth()->user()?->email === 'justusque@gmail.com')
                     ->color('primary')
                     ->icon('heroicon-o-arrow-up-tray')
                     ->form([
@@ -86,6 +87,7 @@ class ProductResource extends Resource
                     ->action(function (array $data) {
                         try {
                             $rel = $data['file'] ?? null;
+
                             if (!$rel) {
                                 throw new \RuntimeException('Nie wybrano pliku.');
                             }
@@ -114,7 +116,7 @@ class ProductResource extends Resource
                             Log::info('[IMPORT_PRODUCTS] done', [
                                 'created' => $import->created,
                                 'updated' => $import->updated,
-                                'levels'  => $import->levels,
+                                'levels' => $import->levels,
                                 'skipped' => $import->skipped,
                                 'after_products' => $after,
                             ]);
@@ -132,12 +134,20 @@ class ProductResource extends Resource
 
                             Notification::make()
                                 ->title('Import NIEUDANY')
-                                ->body($e->getMessage() . " (szczegóły w storage/logs/laravel.log)")
+                                ->body($e->getMessage() . ' (szczegóły w storage/logs/laravel.log)')
                                 ->danger()
                                 ->send();
 
                             throw $e;
                         }
+                    }),
+
+                Action::make('export')
+                    ->label('Export do Excel')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('success')
+                    ->action(function () {
+                        return Excel::download(new StockLevelsExport(), 'stany-magazynowe.xlsx');
                     }),
             ])
             ->actions([
