@@ -47,7 +47,7 @@ WORKDIR /var/www/html
 COPY --from=vendor /app/vendor ./vendor
 COPY . .
 
-RUN mkdir -p storage bootstrap/cache \
+RUN mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R 775 storage bootstrap/cache
 
