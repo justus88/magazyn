@@ -10,7 +10,7 @@
                 @if (auth()->user()?->email === 'justusque@gmail.com')
                     <x-filament::button
                         tag="a"
-                        :href="\App\Filament\Resources\StockLevelResource::getUrl()"
+			:href="route('management.import')"
                         color="primary"
                     >
                         Import z Excel
