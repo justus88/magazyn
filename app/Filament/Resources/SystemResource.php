@@ -15,6 +15,7 @@ class SystemResource extends Resource
     protected static ?string $model = System::class;
     protected static ?string $navigationLabel = 'Systemy';
     protected static ?string $navigationGroup = 'Zarządzanie';
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function canAccess(): bool
     {
