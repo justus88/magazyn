@@ -10,7 +10,7 @@
                 @if (auth()->user()?->email === 'justusque@gmail.com')
                     <x-filament::button
                         tag="a"
-			:href="route('management.import')"
+                        :href="route('management.import')"
                         color="primary"
                     >
                         Import z Excel
@@ -33,13 +33,13 @@
             </x-slot>
 
             <div class="flex flex-col gap-3">
-                <x-filament::button tag="button" color="gray" disabled>
-                    Raport miesięczny PDF
+                <x-filament::button
+                    tag="a"
+                    :href="route('management.report')"
+                    color="gray"
+                >
+                    Raport PDF
                 </x-filament::button>
-
-                <p class="text-sm text-gray-500">
-                    Ta sekcja będzie rozwijana w następnym kroku.
-                </p>
             </div>
         </x-filament::section>
 
