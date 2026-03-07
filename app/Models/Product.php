@@ -40,6 +40,7 @@ class Product extends Model
     public function getActivitylogOptions(): LogOptions
     {
         return LogOptions::defaults()
+	    ->useLogName('magazyn')
             ->logOnly(['system_id', 'code', 'name', 'unit', 'active'])
             ->logOnlyDirty()
             ->dontSubmitEmptyLogs();
