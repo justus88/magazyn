@@ -46,9 +46,10 @@ class StockDocumentResource extends Resource
             Forms\Components\Repeater::make('lines')
                 ->label('Pozycje')
                 ->relationship()
+		->columnSpanFull()
                 ->schema([
 		Forms\Components\Select::make('product_id')
-    		    ->label('Materiał')
+    		    ->label('Części')
     		    ->relationship(
         		name: 'product',
         		titleAttribute: 'code',
@@ -96,7 +97,7 @@ class StockDocumentResource extends Resource
                         }),
                 ])
                 ->minItems(1)
-                ->columns(3),
+                ->columns(2),
         ])->columns(2);
     }
 
