@@ -47,13 +47,18 @@ class StockDocumentResource extends Resource
                 ->label('Pozycje')
                 ->relationship()
                 ->schema([
-                    Forms\Components\Select::make('product_id')
-                        ->label('Materiał')
-                        ->relationship('product', 'code')
-                        ->searchable()
-                        ->preload()
-                        ->required()
-                        ->reactive(),
+		Forms\Components\Select::make('product_id')
+    		    ->label('Materiał')
+    		    ->relationship(
+        		name: 'product',
+        		titleAttribute: 'code',
+        		modifyQueryUsing: fn ($query) => $query->orderBy('code')
+    		    )
+    		    ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->code} - {$record->name}")
+    		    ->searchable(['code', 'name'])
+    		    ->preload()
+    		    ->required()
+    		    ->reactive(),
 
                     // podgląd stanu (tylko przy WZ)
                     Forms\Components\Placeholder::make('on_hand')
