@@ -14,7 +14,15 @@ class SystemResource extends Resource
 {
     protected static ?string $model = System::class;
     protected static ?string $navigationLabel = 'Systemy';
-    protected static ?string $navigationGroup = 'Magazyn';
+    protected static ?string $navigationGroup = 'Zarządzanie';
+
+    public static function canAccess(): bool
+    {
+        return in_array(auth()->user()?->email, [
+            'justusque@gmail.com',
+            'pejot@wp.pl',
+        ], true);
+    }
 
     public static function form(Form $form): Form
     {
