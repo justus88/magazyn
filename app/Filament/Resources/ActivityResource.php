@@ -17,9 +17,12 @@ class ActivityResource extends Resource
     protected static ?string $navigationGroup = 'Administracja';
     protected static ?string $navigationIcon = 'heroicon-o-clipboard-document-list';
 
+    // UKRYWA RESOURCE Z MENU
+    protected static bool $shouldRegisterNavigation = false;
+
     public static function form(Form $form): Form
     {
-        return $form->schema([]); // tylko podgląd
+        return $form->schema([]);
     }
 
     public static function table(Table $table): Table
@@ -41,54 +44,12 @@ class ActivityResource extends Resource
                     ->badge()
                     ->sortable(),
 
-                // NEW: Kod / Nazwa z properties (top-level albo properties.attributes.*)
-                Tables\Columns\TextColumn::make('item_code')
-                    ->label('Kod')
-                    ->getStateUsing(function (Activity $record) {
-                        $p = $record->properties ?? [];
-                        $code = data_get($p, 'code') ?? data_get($p, 'attributes.code') ?? data_get($p, 'old.code');
-                        return $code ?: '-';
-                    })
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('item_name')
-                    ->label('Nazwa')
-                    ->getStateUsing(function (Activity $record) {
-                        $p = $record->properties ?? [];
-                        $name = data_get($p, 'name') ?? data_get($p, 'attributes.name') ?? data_get($p, 'old.name');
-                        return $name ?: '-';
-                    })
-                    ->wrap()
-                    ->searchable(),
-
-                Tables\Columns\TextColumn::make('subject_type')
-                    ->label('Model')
-                    ->formatStateUsing(fn (?string $state) => $state ? class_basename($state) : '-')
-                    ->toggleable(),
-
-                Tables\Columns\TextColumn::make('subject_id')
-                    ->label('ID')
-                    ->sortable()
-                    ->toggleable(),
-
                 Tables\Columns\TextColumn::make('description')
                     ->label('Opis')
                     ->wrap()
                     ->searchable(),
             ])
-            ->filters([
-                Tables\Filters\SelectFilter::make('event')
-                    ->label('Akcja')
-                    ->options([
-                        'created' => 'created',
-                        'updated' => 'updated',
-                        'deleted' => 'deleted',
-                    ]),
-
-                Tables\Filters\Filter::make('only_products')
-                    ->label('Tylko materiały')
-                    ->query(fn ($query) => $query->where('subject_type', 'App\Models\Product')),
-            ])
+            ->filters([])
             ->actions([
                 Tables\Actions\ViewAction::make()->label('Szczegóły'),
             ])
