@@ -49,7 +49,7 @@ class StockDocumentResource extends Resource
 		->columnSpanFull()
                 ->schema([
 		Forms\Components\Select::make('product_id')
-    		    ->label('Części')
+    		    ->label('Część / materiał')
     		    ->relationship(
         		name: 'product',
         		titleAttribute: 'code',
