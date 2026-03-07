@@ -71,3 +71,26 @@ Route::post('/management/import', function (Request $request) {
         ->route('management.import')
         ->with('success', "Import zakończony. Dodano: {$import->created}, zaktualizowano: {$import->updated}, ustawiono stanów: {$import->levels}, pominięto: {$import->skipped}.");
 })->middleware('auth')->name('management.import.post');
+
+Route::get('/management/report', function () {
+    abort_unless(auth()->check() && in_array(auth()->user()?->email, [
+        'justusque@gmail.com',
+        'pejot@wp.pl',
+    ], true), 403);
+
+    return view('management.report');
+})->middleware('auth')->name('management.report');
+
+Route::post('/management/report', function (\Illuminate\Http\Request $request) {
+    abort_unless(auth()->check() && in_array(auth()->user()?->email, [
+        'justusque@gmail.com',
+        'pejot@wp.pl',
+    ], true), 403);
+
+    $request->validate([
+        'date_from' => ['required', 'date'],
+        'date_to' => ['required', 'date', 'after_or_equal:date_from'],
+    ]);
+
+    return back()->withErrors(['date_from' => 'Generator PDF dodamy w następnym kroku.']);
+})->middleware('auth')->name('management.report.generate');
