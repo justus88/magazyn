@@ -36,6 +36,9 @@ class StockDocumentResource extends Resource
                 ->required()
                 ->default(now()),
 
+            Forms\Components\Hidden::make('created_by')
+                ->default(fn () => auth()->id()),
+
             Forms\Components\Placeholder::make('status')
                 ->label('Status')
                 ->content(fn ($record) => $record?->status ?? 'draft'),
