@@ -35,8 +35,7 @@ class StockDocumentLine extends Model
             $ktw = $document->number ?? '-';
             $userName = auth()->user()?->name ?? 'Użytkownik';
 
-            activity()
-                ->useLogName('magazyn')
+            activity('magazyn')
                 ->performedOn($line)
                 ->causedBy(auth()->user())
                 ->withProperties([
