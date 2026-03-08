@@ -35,10 +35,22 @@ class ActivityLogResource extends Resource
                     ->label('Akcja')
                     ->badge()
                     ->sortable()
+                    ->formatStateUsing(fn (?string $state) => match ($state) {
+                        'wydanie' => 'Wydanie',
+                        'przyjęcie' => 'Przyjęcie',
+                        'przyjecie' => 'Przyjęcie',
+                        'utworzenie_dokumentu' => 'Utworzenie dokumentu',
+                        'aktualizacja_dokumentu' => 'Aktualizacja dokumentu',
+                        'usuniecie_dokumentu' => 'Usunięcie dokumentu',
+                        'deleted' => 'Usunięto',
+                        'updated' => 'Zaktualizowano',
+                        'created' => 'Utworzono',
+                        default => $state ?: '-',
+                    })
                     ->placeholder('-'),
 
                 Tables\Columns\TextColumn::make('subject_type')
-                    ->label('Model')
+                    ->label('Obiekt')
                     ->formatStateUsing(fn (?string $state) => match ($state) {
                         'App\Models\Product' => 'Materiał',
                         'App\Models\StockDocument' => 'Dokument',
@@ -53,12 +65,9 @@ class ActivityLogResource extends Resource
                     ->wrap()
                     ->searchable(),
             ])
-            ->filters([
-            ])
-            ->actions([
-            ])
-            ->bulkActions([
-            ]);
+            ->filters([])
+            ->actions([])
+            ->bulkActions([]);
     }
 
     public static function canCreate(): bool
