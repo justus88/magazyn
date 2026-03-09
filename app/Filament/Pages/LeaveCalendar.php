@@ -13,6 +13,7 @@ class LeaveCalendar extends Page
     protected static ?string $navigationLabel = 'Kalendarz urlopów';
     protected static ?string $navigationGroup = 'Zarządzanie';
     protected static ?int $navigationSort = 21;
+    protected static bool $shouldRegisterNavigation = false;
     protected static string $view = 'filament.pages.leave-calendar';
 
     public static function canAccess(): bool
@@ -42,7 +43,7 @@ class LeaveCalendar extends Page
             ->whereDate('date_to', '>=', $calendarStart->toDateString())
             ->get();
 
-        $days = [];
+        $weeks = [];
         $week = [];
 
         foreach (CarbonPeriod::create($calendarStart, $calendarEnd) as $date) {
@@ -67,7 +68,7 @@ class LeaveCalendar extends Page
             ];
 
             if (count($week) === 7) {
-                $days[] = $week;
+                $weeks[] = $week;
                 $week = [];
             }
         }
@@ -76,7 +77,7 @@ class LeaveCalendar extends Page
             'currentMonth' => $currentMonth,
             'prevMonth' => $currentMonth->copy()->subMonth()->format('Y-m'),
             'nextMonth' => $currentMonth->copy()->addMonth()->format('Y-m'),
-            'weeks' => $days,
+            'weeks' => $weeks,
         ];
     }
 }
