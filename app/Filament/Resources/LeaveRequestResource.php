@@ -36,11 +36,11 @@ class LeaveRequestResource extends Resource
         return $form->schema([
             Forms\Components\Hidden::make('user_id')
                 ->default(fn () => auth()->id())
-                ->visible(fn () => ! $isPejot),
+                ->visible(false),
 
-            Forms\Components\Select::make('user_id')
+            Forms\Components\TextInput::make('employee_name')
                 ->label('Pracownik')
-                ->relationship('user', 'name')
+                ->default(fn ($record) => $record?->user?->name)
                 ->disabled()
                 ->dehydrated(false)
                 ->visible(fn () => $isPejot),
@@ -73,11 +73,9 @@ class LeaveRequestResource extends Resource
                 ->required(fn () => $isPejot),
 
             Forms\Components\Hidden::make('approved_by')
-                ->default(fn () => auth()->user()?->email === 'pejot@wp.pl' ? auth()->id() : null)
                 ->visible(false),
 
             Forms\Components\Hidden::make('approved_at')
-                ->default(fn () => auth()->user()?->email === 'pejot@wp.pl' ? now() : null)
                 ->visible(false),
         ]);
     }
@@ -130,6 +128,7 @@ class LeaveRequestResource extends Resource
             ->filters([])
             ->actions([
                 Tables\Actions\EditAction::make()
+                    ->label(fn () => auth()->user()?->email === 'pejot@wp.pl' ? 'Rozpatrz' : 'Edytuj')
                     ->visible(function (LeaveRequest $record) {
                         if (auth()->user()?->email === 'pejot@wp.pl') {
                             return true;
@@ -139,6 +138,7 @@ class LeaveRequestResource extends Resource
                     }),
 
                 Tables\Actions\DeleteAction::make()
+                    ->label('Usuń')
                     ->visible(function (LeaveRequest $record) {
                         if (auth()->user()?->email === 'pejot@wp.pl') {
                             return false;
