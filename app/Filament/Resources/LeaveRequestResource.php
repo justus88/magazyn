@@ -16,8 +16,9 @@ class LeaveRequestResource extends Resource
     protected static ?string $model = LeaveRequest::class;
 
     protected static ?string $navigationLabel = 'Urlopy';
-    protected static ?string $navigationGroup = 'Magazyn';
+    protected static ?string $navigationGroup = 'Zarządzanie';
     protected static ?string $navigationIcon = 'heroicon-o-calendar-days';
+    protected static ?int $navigationSort = 20;
 
     public static function canAccess(): bool
     {
